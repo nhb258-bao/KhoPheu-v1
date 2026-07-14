@@ -1,0 +1,200 @@
+{
+  "areas": [
+    "Khu Bếp Từ RT03",
+    "Khu Bếp Từ CT02",
+    "Khu BRC G62",
+    "Khu BRC G09",
+    "Khu BRC K2 Plus",
+    "Khu BRC DK4"
+  ],
+  "assignments": {
+    "PVN4279": {
+      "area": "Khu BRC K2 Plus",
+      "order": 0
+    },
+    "PVN3461": {
+      "area": "Khu BRC K2 Plus",
+      "order": 1
+    },
+    "PVN2008": {
+      "area": "Khu BRC K2 Plus",
+      "order": 9
+    },
+    "PVN3460": {
+      "area": "Khu BRC K2 Plus",
+      "order": 8
+    },
+    "PVN4280": {
+      "area": "Khu BRC K2 Plus",
+      "order": 2
+    },
+    "PVN4284": {
+      "area": "Khu BRC K2 Plus",
+      "order": 5
+    },
+    "PVN3401": {
+      "area": "Khu BRC K2 Plus",
+      "order": 3
+    },
+    "PVN4278": {
+      "area": "Khu BRC K2 Plus",
+      "order": 6
+    },
+    "PVN3464": {
+      "area": "Khu BRC K2 Plus",
+      "order": 7
+    },
+    "PVN4285": {
+      "area": "Khu BRC K2 Plus",
+      "order": 4
+    },
+    "PVN2187": {
+      "area": "Khu BRC DK4",
+      "order": 1
+    },
+    "PVN2188": {
+      "area": "Khu BRC DK4",
+      "order": 0
+    },
+    "PTS667": {
+      "area": "Khu Bếp Từ RT03",
+      "order": 11
+    },
+    "PTS668": {
+      "area": "Khu BRC G62",
+      "order": 4
+    },
+    "PTS669": {
+      "area": "Khu Bếp Từ RT03",
+      "order": 5
+    },
+    "PVN2716": {
+      "area": "Khu Bếp Từ RT03",
+      "order": 6
+    },
+    "PVN2721": {
+      "area": "Khu Bếp Từ RT03",
+      "order": 7
+    },
+    "PTS671": {
+      "area": "Khu Bếp Từ RT03",
+      "order": 8
+    },
+    "PTS670": {
+      "area": "Khu Bếp Từ RT03",
+      "order": 9
+    },
+    "PVN2715": {
+      "area": "Khu Bếp Từ RT03",
+      "order": 10
+    },
+    "PTS673": {
+      "area": "Khu BRC G62",
+      "order": 1
+    },
+    "PTS672": {
+      "area": "Khu BRC G62",
+      "order": 0
+    },
+    "PTS674": {
+      "area": "Khu BRC G62",
+      "order": 2
+    },
+    "PVN2722": {
+      "area": "Khu BRC G62",
+      "order": 3
+    },
+    "PTS1350": {
+      "area": "Khu Bếp Từ RT03",
+      "order": 2
+    },
+    "PTS1623": {
+      "area": "Khu Bếp Từ RT03",
+      "order": 3
+    },
+    "PTS1349": {
+      "area": "Khu Bếp Từ RT03",
+      "order": 4
+    },
+    "PTS1351": {
+      "area": "Khu Bếp Từ RT03",
+      "order": 1
+    },
+    "PTS1352": {
+      "area": "Khu Bếp Từ RT03",
+      "order": 0
+    },
+    "PVN2450": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 1
+    },
+    "PVN2451": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 0
+    },
+    "PTS675": {
+      "area": "Khu BRC G09",
+      "order": 0
+    },
+    "PTS676": {
+      "area": "Khu BRC G09",
+      "order": 1
+    },
+    "PVN3396": {
+      "area": "Khu BRC G09",
+      "order": 2
+    },
+    "PVN3395": {
+      "area": "Khu BRC G09",
+      "order": 3
+    },
+    "PVN2784": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 2
+    },
+    "PVN2783": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 3
+    },
+    "PVN2786": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 4
+    },
+    "PVN2785": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 5
+    },
+    "PVN2787": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 6
+    },
+    "PVN2788": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 7
+    },
+    "PVN2789": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 8
+    },
+    "PVN2790": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 9
+    },
+    "PVN2791": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 10
+    },
+    "PVN2792": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 11
+    },
+    "PVN2793": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 12
+    },
+    "PVN2794": {
+      "area": "Khu Bếp Từ CT02",
+      "order": 13
+    }
+  }
+}

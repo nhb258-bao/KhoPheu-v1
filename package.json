@@ -1,0 +1,18 @@
+{
+  "name": "kho-pheu-da-nang",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Website dem kho pheu cuoi ca, dong bo du lieu tu Google Sheets.",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "read-excel-file": "9.2.0"
+  }
+}

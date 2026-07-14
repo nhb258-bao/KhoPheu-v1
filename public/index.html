@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#176b4c" />
+    <meta
+      name="description"
+      content="Công cụ đếm kho phễu cuối ca, đối chiếu số lượng chuẩn và sản phẩm bán trong ngày."
+    />
+    <title>Kho Phễu · Đếm cuối ca</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="stylesheet" href="/styles.css?v=66" />
+  </head>
+  <body>
+    <svg class="svg-sprite" aria-hidden="true">
+      <symbol id="i-funnel" viewBox="0 0 24 24">
+        <path d="M4 5.25h16l-6.25 7.2v5.15l-3.5 1.9v-7.05L4 5.25Z" />
+      </symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24">
+        <path d="M20 6v5h-5M4.9 17.1A8 8 0 0 0 18.7 15M4 18v-5h5M19.1 6.9A8 8 0 0 0 5.3 9" />
+      </symbol>
+      <symbol id="i-box" viewBox="0 0 24 24">
+        <path d="m4 7 8-4 8 4-8 4-8-4Zm0 0v10l8 4 8-4V7M12 11v10" />
+      </symbol>
+      <symbol id="i-overview" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
+        <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />
+      </symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21h-4v-.08A1.7 1.7 0 0 0 8.95 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15 1.7 1.7 0 0 0 3.08 14H3v-4h.08A1.7 1.7 0 0 0 4.6 8.95a1.7 1.7 0 0 0-.34-1.88L4.2 7l2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3.08V3h4v.08A1.7 1.7 0 0 0 15.05 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06L19.82 7l-.06.06A1.7 1.7 0 0 0 19.4 9 1.7 1.7 0 0 0 20.92 10H21v4h-.08A1.7 1.7 0 0 0 19.4 15Z" />
+      </symbol>
+      <symbol id="i-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-4-4" />
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 24 24">
+        <path d="m5 12 4 4L19 6" />
+      </symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" /></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24">
+        <rect x="4" y="10" width="16" height="11" rx="2" />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      </symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24">
+        <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+        <circle cx="12" cy="12" r="2.5" />
+      </symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24">
+        <path d="m3 3 18 18M10.6 6.1A10.5 10.5 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-2.1 2.8M6.2 6.2C3.8 7.8 2.5 12 2.5 12s3.5 6 9.5 6a9.4 9.4 0 0 0 3.1-.5M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+      </symbol>
+      <symbol id="i-grip" viewBox="0 0 24 24">
+        <circle cx="8" cy="6" r="1" /><circle cx="16" cy="6" r="1" />
+        <circle cx="8" cy="12" r="1" /><circle cx="16" cy="12" r="1" />
+        <circle cx="8" cy="18" r="1" /><circle cx="16" cy="18" r="1" />
+      </symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24">
+        <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4L16.5 3.5Z" />
+      </symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24">
+        <path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6" />
+      </symbol>
+      <symbol id="i-save" viewBox="0 0 24 24">
+        <path d="M5 3h12l3 3v15H4V4a1 1 0 0 1 1-1Z" />
+        <path d="M8 3v6h8V3M8 21v-7h8v7" />
+      </symbol>
+      <symbol id="i-undo" viewBox="0 0 24 24">
+        <path d="m9 5-5 5 5 5M4 10h10a6 6 0 1 1 0 12h-2" />
+      </symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24">
+        <path d="M10 17l5-5-5-5M15 12H3M14 3h6a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-6" />
+      </symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24">
+        <path d="M10.3 3.8 2.2 18a2 2 0 0 0 1.73 3h16.14a2 2 0 0 0 1.73-3L13.7 3.8a2 2 0 0 0-3.4 0Z" />
+        <path d="M12 9v4M12 17h.01" />
+      </symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24">
+        <path d="M17.5 19H6a4 4 0 1 1 .7-7.94A6 6 0 0 1 18.2 9.4 4.8 4.8 0 0 1 17.5 19Z" />
+        <path d="m9 14 2 2 4-4" />
+      </symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M16 3v4M8 3v4M3 10h18" />
+      </symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24">
+        <rect x="8" y="8" width="12" height="12" rx="2" />
+        <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+      </symbol>
+      <symbol id="i-export" viewBox="0 0 24 24">
+        <path d="M12 15V3M7 8l5-5 5 5M5 14v6h14v-6" />
+      </symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></symbol>
+    </svg>
+
+    <header class="app-header">
+      <div class="topbar page-width">
+        <a class="brand" href="#overview" aria-label="Kho Phễu - trang tổng quan">
+          <span class="brand-mark"><svg class="icon"><use href="#i-funnel"></use></svg></span>
+          <span>
+            <strong>Kho Phễu</strong>
+            <small>Showroom Đà Nẵng</small>
+          </span>
+        </a>
+        <div class="topbar-actions">
+          <span class="sync-indicator" id="sync-indicator" aria-live="polite">
+            <span class="sync-dot"></span>
+            <span id="sync-label">Đang kết nối</span>
+          </span>
+          <button class="icon-button" id="refresh-button" type="button" aria-label="Làm mới dữ liệu" title="Làm mới dữ liệu">
+            <svg class="icon"><use href="#i-refresh"></use></svg>
+          </button>
+        </div>
+      </div>
+      <nav class="tabbar page-width" aria-label="Chức năng chính" role="tablist">
+        <button class="tab-button is-active" id="tab-overview" type="button" role="tab" aria-selected="true" aria-controls="overview-panel" data-tab="overview">
+          <svg class="icon"><use href="#i-overview"></use></svg>
+          <span>Tổng quan</span>
+        </button>
+        <button class="tab-button" id="tab-count" type="button" role="tab" aria-selected="false" aria-controls="count-panel" data-tab="count">
+          <svg class="icon"><use href="#i-box"></use></svg>
+          <span>Đếm kho</span>
+        </button>
+        <button class="tab-button" id="tab-lookup" type="button" role="tab" aria-selected="false" aria-controls="lookup-panel" data-tab="lookup">
+          <svg class="icon"><use href="#i-search"></use></svg>
+          <span>Tra kho</span>
+        </button>
+        <button class="tab-button" id="tab-admin" type="button" role="tab" aria-selected="false" aria-controls="admin-panel" data-tab="admin">
+          <svg class="icon"><use href="#i-settings"></use></svg>
+          <span>Quản trị</span>
+          <span class="unsaved-dot" id="unsaved-dot" aria-label="Có thay đổi chưa lưu" hidden></span>
+        </button>
+      </nav>
+    </header>
+
+    <main id="main-content" class="page-width">
+      <section id="overview-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-overview">
+        <div id="overview-loading" class="state-card compact">
+          <span class="spinner" aria-hidden="true"></span>
+          <h2>Đang tải tổng quan…</h2>
+        </div>
+        <div id="overview-error" class="state-card state-error" hidden>
+          <span class="state-icon"><svg class="icon"><use href="#i-alert"></use></svg></span>
+          <h2>Chưa tải được dữ liệu</h2>
+          <p id="overview-error-message">Vui lòng kiểm tra kết nối rồi thử lại.</p>
+          <button class="button button-primary" id="retry-overview" type="button">Thử lại</button>
+        </div>
+        <div id="overview-content" hidden>
+          <section class="summary-card" aria-labelledby="overview-heading">
+            <div class="summary-heading">
+              <h1 class="eyebrow" id="overview-heading">Bảng kiểm kho phễu cuối ca</h1>
+              <p class="date-line">
+                <svg class="icon"><use href="#i-calendar"></use></svg>
+                <span id="count-date">Hôm nay</span>
+              </p>
+            </div>
+            <button
+              class="button button-primary summary-export-button"
+              id="export-inventory-report"
+              type="button"
+              aria-disabled="true"
+              title="Chỉ xuất được khi đã đếm đủ và không còn sản phẩm chưa đếm"
+              disabled
+            >
+              <svg class="icon" aria-hidden="true"><use href="#i-export"></use></svg>
+              <span>Xuất báo kho</span>
+            </button>
+            <div class="progress-block is-incomplete" id="progress-block">
+              <div class="progress-copy">
+                <span>Tiến độ kiểm đếm</span>
+                <strong id="progress-label">0 / 0</strong>
+              </div>
+              <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-track">
+                <span id="progress-fill"></span>
+              </div>
+              <p id="progress-hint">Bắt đầu từ khu gần bạn nhất.</p>
+            </div>
+            <dl class="summary-stats">
+              <div class="stat stat-enough"><dt>Đã đếm</dt><dd id="stat-enough">0</dd></div>
+              <div class="stat stat-pending" id="stat-pending-card" role="button" tabindex="-1" aria-disabled="true">
+                <dt>Chưa đếm</dt><dd id="stat-pending">0</dd>
+              </div>
+              <div class="stat stat-sold"><dt>Số lượng đã bán</dt><dd id="stat-sold">0</dd></div>
+            </dl>
+            <section class="overview-sales" aria-labelledby="sales-detail-heading">
+              <h2 id="sales-detail-heading">CHI TIẾT BÁN HÀNG</h2>
+              <div class="sales-staff-list" id="sales-detail-list"></div>
+              <p class="sales-detail-empty" id="sales-detail-empty" hidden>Hôm nay chưa có sản phẩm nào được bán.</p>
+            </section>
+          </section>
+        </div>
+      </section>
+
+      <section id="count-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-count" hidden>
+        <div id="count-loading" class="loading-layout" aria-label="Đang tải dữ liệu">
+          <div class="skeleton skeleton-toolbar"></div>
+          <div class="skeleton-grid">
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+          </div>
+        </div>
+
+        <div id="count-error" class="state-card state-error" hidden>
+          <span class="state-icon"><svg class="icon"><use href="#i-alert"></use></svg></span>
+          <h1>Chưa tải được dữ liệu</h1>
+          <p id="count-error-message">Vui lòng kiểm tra kết nối rồi thử lại.</p>
+          <button class="button button-primary" id="retry-bootstrap" type="button">Thử lại</button>
+        </div>
+
+        <div id="count-content" hidden>
+          <section class="count-date-card" aria-label="Ngày kiểm kho">
+            <svg class="icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+            <p id="count-tab-date" aria-live="polite">Hôm nay</p>
+          </section>
+          <div id="count-toolbar-home" hidden></div>
+          <section class="count-toolbar" id="count-toolbar" aria-label="Tìm sản phẩm">
+            <label class="search-field" for="product-search">
+              <svg class="icon"><use href="#i-search"></use></svg>
+              <input id="product-search" type="search" inputmode="search" autocomplete="off" placeholder="Tìm tên sản phẩm hoặc SKU" />
+              <span class="keyboard-hint" aria-hidden="true">/</span>
+            </label>
+          </section>
+
+          <div class="results-line" id="results-line" aria-live="polite"></div>
+          <div id="area-list" class="area-list"></div>
+          <div id="count-empty" class="state-card compact" hidden>
+            <span class="state-icon"><svg class="icon"><use href="#i-search"></use></svg></span>
+            <h2>Không tìm thấy sản phẩm</h2>
+            <p>Thử từ khóa khác.</p>
+            <button class="button button-secondary" id="clear-filters" type="button">Xóa tìm kiếm</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="lookup-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-lookup" hidden>
+        <div class="lookup-layout">
+          <section class="lookup-upload-card" id="lookup-upload-card" aria-labelledby="lookup-upload-title" aria-busy="false">
+            <div class="lookup-card-heading">
+              <span class="lookup-card-icon"><svg class="icon"><use href="#i-export"></use></svg></span>
+              <div>
+                <h2 id="lookup-upload-title">Nhập file Excel</h2>
+                <p id="lookup-file-help">Chỉ hỗ trợ file .xlsx tối đa 8 MB</p>
+              </div>
+            </div>
+
+            <div class="lookup-dropzone" id="lookup-dropzone">
+              <input
+                id="lookup-file-input"
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                hidden
+              />
+              <svg class="lookup-dropzone-icon icon" aria-hidden="true"><use href="#i-export"></use></svg>
+              <strong>Thả file Excel vào đây</strong>
+              <span>hoặc chọn file từ thiết bị</span>
+              <button class="button button-secondary" id="lookup-file-picker" type="button" aria-describedby="lookup-file-help">
+                Chọn file .xlsx
+              </button>
+            </div>
+
+            <div class="lookup-file-selected" id="lookup-file-selected" hidden>
+              <span class="lookup-file-check"><svg class="icon"><use href="#i-check"></use></svg></span>
+              <div>
+                <strong id="lookup-file-name"></strong>
+                <small id="lookup-file-meta"></small>
+              </div>
+              <button class="button button-ghost lookup-file-replace" id="lookup-file-replace" type="button">Đổi file</button>
+            </div>
+
+            <p class="form-error lookup-file-error" id="lookup-file-error" role="alert" hidden></p>
+            <div class="lookup-actions">
+              <button
+                class="button button-primary"
+                id="lookup-balance-button"
+                type="button"
+                aria-haspopup="dialog"
+                aria-controls="lookup-balance-dialog"
+                hidden
+              >
+                <svg class="icon"><use href="#i-check"></use></svg>
+                <span>Cân bằng kho</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="admin-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-admin" hidden>
+        <div id="admin-loading" class="state-card compact" hidden>
+          <span class="spinner" aria-hidden="true"></span>
+          <h2>Đang kiểm tra phiên đăng nhập…</h2>
+        </div>
+
+        <div id="admin-guest" class="login-layout" hidden>
+          <section class="login-intro">
+            <p class="eyebrow" id="admin-login-heading">Dành cho quản trị viên</p>
+          </section>
+          <form id="login-form" class="login-card" aria-labelledby="admin-login-heading" novalidate>
+            <span class="login-icon"><svg class="icon"><use href="#i-lock"></use></svg></span>
+            <label class="form-field">
+              <span>Tên đăng nhập</span>
+              <input id="login-username" name="username" type="text" autocomplete="username" required placeholder="Nhập tên tài khoản" />
+            </label>
+            <label class="form-field">
+              <span>Mật khẩu</span>
+              <span class="password-field">
+                <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Nhập mật khẩu" />
+                <button id="toggle-password" type="button" aria-label="Hiện mật khẩu" title="Hiện mật khẩu">
+                  <svg class="icon"><use href="#i-eye"></use></svg>
+                </button>
+              </span>
+            </label>
+            <p class="form-error" id="login-error" role="alert" hidden></p>
+            <button class="button button-primary button-wide" id="login-submit" type="submit">
+              <span>Đăng nhập</span>
+              <svg class="icon"><use href="#i-chevron"></use></svg>
+            </button>
+          </form>
+        </div>
+
+        <div id="admin-app" hidden>
+          <section class="admin-heading">
+            <div class="admin-config-actions">
+              <button class="button button-secondary" id="discard-config" type="button" aria-label="Hoàn tác thao tác gần nhất" title="Hoàn tác thao tác gần nhất" disabled>
+                <svg class="icon"><use href="#i-undo"></use></svg>
+                <span>Hoàn tác</span>
+              </button>
+              <button class="button button-primary" id="save-config" type="button" disabled>
+                <svg class="icon"><use href="#i-save"></use></svg>
+                <span>Lưu cấu hình</span>
+              </button>
+            </div>
+            <span class="admin-user" id="admin-user"></span>
+            <button class="button button-ghost" id="logout-button" type="button">
+              <svg class="icon"><use href="#i-logout"></use></svg>
+              <span>Đăng xuất</span>
+            </button>
+          </section>
+
+          <div id="admin-board" class="admin-board" aria-label="Các khu sản phẩm"></div>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="area-dialog" class="modal">
+      <form method="dialog" id="area-dialog-form">
+        <div class="modal-heading">
+          <span class="modal-icon" id="area-dialog-icon"><svg class="icon"><use href="#i-edit"></use></svg></span>
+          <div>
+            <h2 id="area-dialog-title">Thêm khu</h2>
+            <p id="area-dialog-copy">Đặt tên ngắn để dễ nhìn khi đếm kho.</p>
+          </div>
+        </div>
+        <label class="form-field" id="area-name-field">
+          <span>Tên khu</span>
+          <input id="area-name-input" type="text" maxlength="30" autocomplete="off" placeholder="Ví dụ: Khu D" />
+        </label>
+        <label class="form-field" id="area-destination-field" hidden>
+          <span>Chuyển sản phẩm sang</span>
+          <select id="area-destination-select"></select>
+        </label>
+        <p class="form-error" id="area-dialog-error" role="alert" hidden></p>
+        <div class="modal-actions">
+          <button class="button button-ghost" value="cancel" type="button" id="area-dialog-cancel">Hủy</button>
+          <button class="button button-primary" value="confirm" type="submit" id="area-dialog-confirm">Xác nhận</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="inventory-report-dialog" class="modal report-modal" aria-labelledby="inventory-report-title" aria-describedby="inventory-report-date">
+      <form method="dialog">
+        <div class="modal-heading report-modal-heading">
+          <span class="modal-icon" aria-hidden="true"><svg class="icon"><use href="#i-export"></use></svg></span>
+          <div>
+            <h2 id="inventory-report-title">Xuất báo kho</h2>
+            <p id="inventory-report-date">Hôm nay</p>
+          </div>
+          <button class="report-copy-button" id="inventory-report-copy" type="button" aria-label="Sao chép nội dung báo kho" title="Sao chép nội dung báo kho">
+            <svg class="icon" aria-hidden="true"><use href="#i-copy"></use></svg>
+          </button>
+        </div>
+        <div class="inventory-report-scroll" id="inventory-report-scroll" role="region" aria-label="Nội dung báo cáo kho" tabindex="0">
+          <pre class="inventory-report-content" id="inventory-report-content"></pre>
+        </div>
+        <div class="modal-actions report-modal-actions">
+          <button class="button button-ghost" type="button" id="inventory-report-close">Đóng</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="lookup-balance-dialog" class="modal lookup-balance-modal" aria-labelledby="lookup-balance-title">
+      <form method="dialog">
+        <div class="modal-heading lookup-balance-heading">
+          <span class="modal-icon" aria-hidden="true"><svg class="icon"><use href="#i-box"></use></svg></span>
+          <div>
+            <h2 id="lookup-balance-title">BẢNG CÂN BẰNG KHO</h2>
+          </div>
+          <button
+            class="icon-button lookup-balance-close-x"
+            id="lookup-balance-close"
+            type="button"
+            aria-label="Đóng bảng cân bằng kho"
+            title="Đóng"
+          >
+            <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg>
+          </button>
+        </div>
+
+        <div class="lookup-balance-body" id="lookup-balance-body" aria-busy="false">
+          <p class="visually-hidden" id="lookup-balance-announcement" role="status" aria-live="polite" aria-atomic="true"></p>
+          <div class="state-card compact lookup-balance-loading" id="lookup-balance-loading" role="status" hidden>
+            <span class="spinner" aria-hidden="true"></span>
+            <h3>Đang cân bằng kho…</h3>
+          </div>
+
+          <div class="state-card state-error lookup-balance-error" id="lookup-balance-error" hidden>
+            <span class="state-icon"><svg class="icon"><use href="#i-alert"></use></svg></span>
+            <h3>Không thể cân bằng kho</h3>
+            <p id="lookup-balance-error-message" role="alert"></p>
+            <button class="button button-secondary" id="lookup-balance-retry" type="button">Thử lại</button>
+          </div>
+
+          <div id="lookup-balance-results" hidden>
+            <dl class="lookup-balance-summary">
+              <div><dt>Tổng mã SKU</dt><dd id="lookup-balance-total">0</dd></div>
+              <div class="is-balanced"><dt>Cân bằng</dt><dd id="lookup-balance-balanced">0</dd></div>
+              <div class="is-excess"><dt>Dư</dt><dd id="lookup-balance-excess">0</dd></div>
+              <div class="is-shortage"><dt>Thiếu</dt><dd id="lookup-balance-shortage">0</dd></div>
+              <div class="is-unmatched"><dt>Chưa đối chiếu</dt><dd id="lookup-balance-unmatched">0</dd></div>
+            </dl>
+
+            <div class="lookup-balance-table-scroll" role="region" aria-label="Kết quả đối chiếu tồn kho" tabindex="0">
+              <table class="lookup-balance-table">
+                <caption class="visually-hidden">So sánh số lượng SR ĐN và CRM theo mã SKU</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Tên sản phẩm</th>
+                    <th scope="col">Mã SKU</th>
+                    <th scope="col">SR ĐN</th>
+                    <th scope="col">CRM</th>
+                    <th scope="col">Chênh lệch</th>
+                  </tr>
+                </thead>
+                <tbody id="lookup-balance-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </dialog>
+
+    <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <noscript>
+      <div class="noscript">Trang này cần JavaScript để nhập và lưu số lượng kiểm đếm.</div>
+    </noscript>
+    <script src="/app.js?v=66" defer></script>
+  </body>
+</html>
