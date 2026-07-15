@@ -2224,6 +2224,34 @@ h2 {
   cursor: grabbing;
 }
 
+.lane-reorder-controls {
+  display: none;
+}
+
+.lane-reorder-button {
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--brand);
+  background: var(--surface);
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.lane-reorder-button:hover:not(:disabled),
+.lane-reorder-button:focus-visible {
+  border-color: #b9cec3;
+  background: var(--brand-pale);
+}
+
+.lane-reorder-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .drag-handle:disabled {
   color: #b3bdb8;
   background: #f2f5f3;
@@ -3184,6 +3212,25 @@ body.is-dragging * {
   .admin-lane {
     min-width: 0;
     max-height: none;
+  }
+
+  .lane-drag-handle {
+    display: none;
+  }
+
+  .lane-reorder-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    padding: 8px 9px 0;
+  }
+
+  .admin-product {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .drag-handle {
+    display: none;
   }
 
   .lane-products {

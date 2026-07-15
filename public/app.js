@@ -16,7 +16,10 @@
   const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
   const LOOKUP_MAX_FILE_SIZE = 8 * 1024 * 1024;
   const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-  const TAB_NAMES = new Set(["overview", "count", "lookup", "admin"]);
+  const TAB_ORDER = ["overview", "count", "lookup", "admin"];
+  const TAB_NAMES = new Set(TAB_ORDER);
+  const TAB_SWIPE_INTERACTIVE_SELECTOR =
+    "a, button, dialog, input, label, select, textarea, [contenteditable], [role='button'], [role='slider'], [role='tab']";
   const INVENTORY_REPORT_REMAINING = {
     drain: [
       ["Cổ Vịt", "Chân Thoát PTS Cổ Vịt"],
@@ -48,6 +51,7 @@
 
   const elements = {
     tabs: $$(".tab-button"),
+    mainContent: $("#main-content"),
     overviewPanel: $("#overview-panel"),
     countPanel: $("#count-panel"),
     lookupPanel: $("#lookup-panel"),
@@ -163,6 +167,7 @@
     search: "",
     selectedCountArea: null,
     activeTab: "overview",
+    tabSwipe: null,
     countSave: {},
     countTimers: {},
     countInflight: {},
@@ -864,7 +869,7 @@
             : "Hoàn tất - Bạn đã đếm đủ tất cả sản phẩm"
         : stats.done
           ? `Chưa hoàn tất - Còn ${stats.total - stats.done} sản phẩm chưa đếm`
-          : "Bắt đầu từ khu gần bạn nhất.";
+          : "Hãy kiểm tra kho SR trước khi kết ca";
     elements.statEnough.textContent = stats.done;
     elements.statPending.textContent = stats.pending;
     elements.statPendingCard.classList.toggle("is-actionable", stats.pending > 0);
@@ -1619,6 +1624,58 @@
     }
   }
 
+  function isInsideHorizontalScroller(target) {
+    let element = target instanceof Element ? target : target?.parentElement;
+    while (element && element !== elements.mainContent) {
+      const overflowX = window.getComputedStyle(element).overflowX;
+      if (["auto", "scroll", "overlay"].includes(overflowX) && element.scrollWidth > element.clientWidth + 1) return true;
+      element = element.parentElement;
+    }
+    return false;
+  }
+
+  function beginTabSwipe(event) {
+    state.tabSwipe = null;
+    if (!isMobileLayout() || state.drag || state.laneDrag || event.defaultPrevented || event.touches.length !== 1) return;
+    const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+    if (!target || target.closest(TAB_SWIPE_INTERACTIVE_SELECTOR) || isInsideHorizontalScroller(target)) return;
+
+    const touch = event.touches[0];
+    const edgeMargin = 24;
+    if (touch.clientX <= edgeMargin || touch.clientX >= window.innerWidth - edgeMargin) return;
+    state.tabSwipe = {
+      identifier: touch.identifier,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startedAt: performance.now(),
+      activeTab: state.activeTab,
+    };
+  }
+
+  function endTabSwipe(event) {
+    const swipe = state.tabSwipe;
+    state.tabSwipe = null;
+    if (!swipe || event.touches.length || swipe.activeTab !== state.activeTab) return;
+    const touch = Array.from(event.changedTouches).find((item) => item.identifier === swipe.identifier);
+    if (!touch) return;
+
+    const deltaX = touch.clientX - swipe.startX;
+    const deltaY = touch.clientY - swipe.startY;
+    const elapsed = performance.now() - swipe.startedAt;
+    const distanceThreshold = Math.min(96, Math.max(56, window.innerWidth * 0.16));
+    if (elapsed > 900 || Math.abs(deltaX) < distanceThreshold || Math.abs(deltaX) <= Math.abs(deltaY) * 1.25) return;
+
+    const currentIndex = TAB_ORDER.indexOf(state.activeTab);
+    const nextIndex = currentIndex + (deltaX < 0 ? 1 : -1);
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= TAB_ORDER.length) return;
+    activateTab(TAB_ORDER[nextIndex]);
+    elements.tabs[nextIndex]?.focus({ preventScroll: true });
+  }
+
+  function cancelTabSwipe() {
+    state.tabSwipe = null;
+  }
+
   function activateTab(name, { updateHash = true } = {}) {
     const next = TAB_NAMES.has(name) ? name : "overview";
     state.activeTab = next;
@@ -1878,6 +1935,15 @@
     const products = draftProductsForArea(area);
     const unassigned = area === UNASSIGNED_AREA;
     const label = adminAreaLabel(area);
+    const areaIndex = unassigned ? -1 : state.adminDraft.areas.indexOf(area);
+    const canMoveLeft = areaIndex > 0;
+    const canMoveRight = areaIndex >= 0 && areaIndex < state.adminDraft.areas.length - 1;
+    const laneReorderControls = unassigned
+      ? ""
+      : `<div class="lane-reorder-controls" role="group" aria-label="Di chuyển ${escapeHtml(label)}">
+          <button class="lane-reorder-button" type="button" data-admin-action="lane-left" data-area="${escapeHtml(area)}" aria-label="Di chuyển ${escapeHtml(label)} sang trái" title="Qua trái"${canMoveLeft ? "" : " disabled"}>←</button>
+          <button class="lane-reorder-button" type="button" data-admin-action="lane-right" data-area="${escapeHtml(area)}" aria-label="Di chuyển ${escapeHtml(label)} sang phải" title="Qua phải"${canMoveRight ? "" : " disabled"}>→</button>
+        </div>`;
     const unassignedSearch = unassigned
       ? `<label class="admin-unassigned-search" for="admin-unassigned-search">
           ${icon("search")}
@@ -1892,7 +1958,7 @@
           <div class="lane-empty admin-unassigned-empty"${products.length ? " hidden" : ""}>Tất cả sản phẩm đã được phân khu</div>
           <div class="lane-empty admin-search-empty" hidden>Không tìm thấy sản phẩm phù hợp</div>`
       : `${productCards}
-          <div class="lane-empty admin-assigned-empty"${products.length ? " hidden" : ""}>Kéo sản phẩm vào khu này</div>
+          <div class="lane-empty admin-assigned-empty"${products.length ? " hidden" : ""}>Chọn khu trên thẻ sản phẩm để chuyển vào đây</div>
           <div class="lane-empty admin-assigned-search-empty" hidden>Không tìm thấy sản phẩm phù hợp</div>`;
     return `
       <section class="admin-lane${unassigned ? " is-unassigned" : ""}" data-admin-area="${escapeHtml(area)}">
@@ -1909,6 +1975,7 @@
             <button class="lane-action is-danger" type="button" data-admin-action="delete" data-area="${escapeHtml(area)}" aria-label="Xóa ${escapeHtml(area)}" title="Xóa khu">${icon("trash")}</button>
           </div>`}
         </header>
+        ${laneReorderControls}
         ${unassignedSearch}
         <div class="lane-products">
           ${laneContent}
@@ -2106,6 +2173,7 @@
     const handle = event.target.closest(".lane-drag-handle");
     if (
       !handle ||
+      isMobileLayout() ||
       !state.adminDraft ||
       state.configSaving ||
       state.drag ||
@@ -2243,10 +2311,15 @@
     );
   }
 
+  function isMobileLayout() {
+    return window.matchMedia?.("(max-width: 760px)")?.matches ?? window.innerWidth <= 760;
+  }
+
   function beginDrag(event) {
     const handle = event.target.closest(".drag-handle");
     if (
       !handle ||
+      isMobileLayout() ||
       handle.disabled ||
       !state.adminDraft ||
       state.configSaving ||
@@ -2585,6 +2658,9 @@
         target.focus();
       });
     });
+    elements.mainContent.addEventListener("touchstart", beginTabSwipe, { passive: true });
+    elements.mainContent.addEventListener("touchend", endTabSwipe, { passive: true });
+    elements.mainContent.addEventListener("touchcancel", cancelTabSwipe, { passive: true });
     elements.refreshButton.addEventListener("click", () => loadBootstrap({ silent: state.ready, force: true }));
     elements.retryBootstrap.addEventListener("click", () => loadBootstrap({ force: true }));
     elements.retryOverview.addEventListener("click", () => loadBootstrap({ force: true }));
@@ -2681,6 +2757,20 @@
         if (state.adminDraft.assignments[sku]?.area !== UNASSIGNED_AREA) {
           const moved = moveProduct(sku, UNASSIGNED_AREA, Infinity);
           if (moved && product) showToast(`Đã đưa ${product.name} về Chưa phân khu.`);
+        }
+        return;
+      }
+      if (["lane-left", "lane-right"].includes(adminAction)) {
+        const currentIndex = state.adminDraft.areas.indexOf(area);
+        const nextIndex = currentIndex + (adminAction === "lane-left" ? -1 : 1);
+        if (currentIndex < 0 || nextIndex < 0 || nextIndex >= state.adminDraft.areas.length) return;
+        if (reorderArea(area, nextIndex)) {
+          const replacement = $$(".admin-lane", elements.adminBoard).find((lane) => lane.dataset.adminArea === area);
+          const focusTarget =
+            replacement?.querySelector(`[data-admin-action="${adminAction}"]:not(:disabled)`) ||
+            replacement?.querySelector(".lane-reorder-button:not(:disabled)");
+          focusTarget?.focus();
+          showToast(`Đã đổi vị trí ${areaLabel(area)}. Hãy lưu cấu hình để áp dụng.`);
         }
         return;
       }
