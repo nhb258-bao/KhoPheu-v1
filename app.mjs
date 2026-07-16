@@ -19,7 +19,7 @@ import {
 import { AppError, badRequest, methodNotAllowed, notFound, unauthorized } from "./src/lib/errors.mjs";
 import { GoogleSheetsService } from "./src/lib/sheets.mjs";
 import { credentialsMatch, SessionManager } from "./src/lib/session.mjs";
-import { DataStore } from "./src/lib/store.mjs";
+import { createDataStore } from "./src/lib/store.mjs";
 import {
   buildStockBalance,
   parseWarehouseWorkbook,
@@ -437,7 +437,7 @@ export function createDefaultApplication() {
   loadEnvFileSync(join(ROOT, ".env"));
   const settings = settingsFromEnv();
   const sessionSecret = settings.sessionSecret || randomBytes(32).toString("hex");
-  const store = new DataStore({
+  const store = createDataStore({
     configPath: join(ROOT, "data", "config.json"),
     countsPath: join(ROOT, "data", "counts.json"),
   });
