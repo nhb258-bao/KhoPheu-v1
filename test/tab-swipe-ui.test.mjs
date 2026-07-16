@@ -55,6 +55,6 @@ test("tổng quan dùng nội dung mới và hỗ trợ vuốt ngang giữa bố
   assert.match(bindBlock, /addEventListener\("touchstart", beginTabSwipe, \{ passive: true \}\)/);
   assert.match(bindBlock, /addEventListener\("touchend", endTabSwipe, \{ passive: true \}\)/);
   assert.match(bindBlock, /addEventListener\("touchcancel", cancelTabSwipe, \{ passive: true \}\)/);
-  assert.match(html, /styles\.css\?v=69/);
-  assert.match(html, /app\.js\?v=69/);
+  assert.match(html, /styles\.css\?v=74/);
+  assert.match(html, /app\.js\?v=74/);
 });

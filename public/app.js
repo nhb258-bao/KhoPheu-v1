@@ -18,6 +18,53 @@
   const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   const TAB_ORDER = ["overview", "count", "lookup", "admin"];
   const TAB_NAMES = new Set(TAB_ORDER);
+  const DEFAULT_SALES_COPY_TEMPLATE = [
+    "{{date}} - {{phone}} - Dạ em bán:",
+    "{{products}}",
+    "Dạ em đã xuất File và CRM.",
+  ].join("\n");
+  const SALES_COPY_TEMPLATE_MAX_LENGTH = 4000;
+  const SALES_COPY_TEMPLATE_TOKENS = new Set(["date", "phone", "customer", "staff", "products"]);
+  const DEFAULT_INVENTORY_REPORT_TEMPLATE = [
+    "Báo cáo kho PTS ngày {{date}}",
+    "Số lượng bán PTS: {{ptsSold}}",
+    "{{ptsSoldProducts}}",
+    "=> SL PTS còn lại: PTS: {{ptsRemaining}}",
+    "",
+    "Số lượng bán Chân thoát: {{drainSold}}",
+    "{{drainSoldProducts}}",
+    "=> SL Chân thoát còn lại:",
+    "{{drainRemaining}}",
+    "",
+    "Số lượng bán VX: {{vxSold}}",
+    "{{vxSoldProducts}}",
+    "=> SL VX còn lại:",
+    "{{vxRemaining}}",
+    "",
+    "Số lượng bán Van Chia Nước: {{valveSold}}",
+    "{{valveSoldProducts}}",
+    "=> SL Van chia nước còn lại:",
+    "{{valveRemaining}}",
+    "",
+    "=> Số lượng ĐỦ",
+  ].join("\n");
+  const INVENTORY_REPORT_TEMPLATE_MAX_LENGTH = 8000;
+  const INVENTORY_REPORT_TEMPLATE_TOKENS = [
+    "date",
+    "ptsSold",
+    "ptsSoldProducts",
+    "ptsRemaining",
+    "drainSold",
+    "drainSoldProducts",
+    "drainRemaining",
+    "vxSold",
+    "vxSoldProducts",
+    "vxRemaining",
+    "valveSold",
+    "valveSoldProducts",
+    "valveRemaining",
+  ];
+  const INVENTORY_REPORT_TEMPLATE_TOKEN_SET = new Set(INVENTORY_REPORT_TEMPLATE_TOKENS);
   const TAB_SWIPE_INTERACTIVE_SELECTOR =
     "a, button, dialog, input, label, select, textarea, [contenteditable], [role='button'], [role='slider'], [role='tab']";
   const INVENTORY_REPORT_REMAINING = {
@@ -134,6 +181,16 @@
     logoutButton: $("#logout-button"),
     saveConfig: $("#save-config"),
     undoConfig: $("#discard-config"),
+    salesCopyTemplateCard: $("#sales-copy-template-card"),
+    salesCopyTemplate: $("#sales-copy-template"),
+    salesCopyTemplateError: $("#sales-copy-template-error"),
+    salesCopyTemplatePreview: $("#sales-copy-template-preview"),
+    resetSalesCopyTemplate: $("#reset-sales-copy-template"),
+    inventoryReportTemplateCard: $("#inventory-report-template-card"),
+    inventoryReportTemplate: $("#inventory-report-template"),
+    inventoryReportTemplateError: $("#inventory-report-template-error"),
+    inventoryReportTemplatePreview: $("#inventory-report-template-preview"),
+    resetInventoryReportTemplate: $("#reset-inventory-report-template"),
     adminBoard: $("#admin-board"),
     unsavedDot: $("#unsaved-dot"),
     areaDialog: $("#area-dialog"),
@@ -161,6 +218,8 @@
     products: [],
     areas: [],
     sales: [],
+    salesCopyTemplate: DEFAULT_SALES_COPY_TEMPLATE,
+    inventoryReportTemplate: DEFAULT_INVENTORY_REPORT_TEMPLATE,
     counts: {},
     savedCounts: {},
     source: {},
@@ -197,6 +256,8 @@
   };
 
   let adminAssignedRevealTimer = null;
+  let salesCopyTemplateEditSession = null;
+  let inventoryReportTemplateEditSession = null;
   let dateRolloverPromise = null;
   let observedVietnamDate = currentDateInVietnam();
 
@@ -352,6 +413,101 @@
     return `${day}/${month}/${date.getFullYear()}`;
   }
 
+  function validateSalesCopyTemplate(value) {
+    if (typeof value !== "string") {
+      return { value: "", error: "Mẫu copy phải là nội dung dạng chữ." };
+    }
+    const template = value.replace(/\r\n?/g, "\n").trim();
+    if (!template) return { value: template, error: "Vui lòng nhập nội dung mẫu copy." };
+    if (template.length > SALES_COPY_TEMPLATE_MAX_LENGTH) {
+      return { value: template, error: `Mẫu copy không được vượt quá ${SALES_COPY_TEMPLATE_MAX_LENGTH} ký tự.` };
+    }
+    if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(template)) {
+      return { value: template, error: "Mẫu copy có ký tự điều khiển không hợp lệ." };
+    }
+
+    const tokens = Array.from(template.matchAll(/{{([^{}]+)}}/g), (match) => match[1]);
+    const unknownToken = tokens.find((token) => !SALES_COPY_TEMPLATE_TOKENS.has(token));
+    const remainder = template.replace(/{{[^{}]+}}/g, "");
+    if (unknownToken || remainder.includes("{{") || remainder.includes("}}")) {
+      return {
+        value: template,
+        error: unknownToken ? `Biến {{${unknownToken}}} không được hỗ trợ.` : "Cú pháp biến trong mẫu copy không hợp lệ.",
+      };
+    }
+    if (tokens.filter((token) => token === "products").length !== 1) {
+      return { value: template, error: "Mẫu copy cần có đúng một biến {{products}}." };
+    }
+    return { value: template, error: "" };
+  }
+
+  function normalizeSalesCopyTemplate(value) {
+    const validated = validateSalesCopyTemplate(value);
+    return validated.error ? DEFAULT_SALES_COPY_TEMPLATE : validated.value;
+  }
+
+  function fillSalesCopyTemplate(template, values) {
+    return template.replace(/{{(date|phone|customer|staff|products)}}/g, (_match, token) => values[token] ?? "");
+  }
+
+  function validateInventoryReportTemplate(value) {
+    if (typeof value !== "string") {
+      return { value: "", error: "Mẫu báo cáo kho phải là nội dung dạng chữ." };
+    }
+    const template = value.replace(/\r\n?/g, "\n").trim();
+    if (!template) return { value: template, error: "Vui lòng nhập nội dung mẫu báo cáo kho." };
+    if (template.length > INVENTORY_REPORT_TEMPLATE_MAX_LENGTH) {
+      return {
+        value: template,
+        error: `Mẫu báo cáo kho không được vượt quá ${INVENTORY_REPORT_TEMPLATE_MAX_LENGTH} ký tự.`,
+      };
+    }
+    if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(template)) {
+      return { value: template, error: "Mẫu báo cáo kho có ký tự điều khiển không hợp lệ." };
+    }
+
+    const tokens = Array.from(template.matchAll(/{{([^{}]+)}}/g), (match) => match[1]);
+    const unknownToken = tokens.find((token) => !INVENTORY_REPORT_TEMPLATE_TOKEN_SET.has(token));
+    const remainder = template.replace(/{{[^{}]+}}/g, "");
+    if (unknownToken || remainder.includes("{{") || remainder.includes("}}")) {
+      return {
+        value: template,
+        error: unknownToken ? `Biến {{${unknownToken}}} không được hỗ trợ.` : "Cú pháp biến trong mẫu báo cáo kho không hợp lệ.",
+      };
+    }
+    const invalidRequiredToken = INVENTORY_REPORT_TEMPLATE_TOKENS.find(
+      (token) => tokens.filter((candidate) => candidate === token).length !== 1,
+    );
+    if (invalidRequiredToken) {
+      return {
+        value: template,
+        error: `Mẫu báo cáo kho cần có đúng một biến {{${invalidRequiredToken}}}.`,
+      };
+    }
+    return { value: template, error: "" };
+  }
+
+  function normalizeInventoryReportTemplate(value) {
+    const validated = validateInventoryReportTemplate(value);
+    return validated.error ? DEFAULT_INVENTORY_REPORT_TEMPLATE : validated.value;
+  }
+
+  function fillInventoryReportTemplate(template, values) {
+    const tokenPattern = /{{(date|ptsSold|ptsSoldProducts|ptsRemaining|drainSold|drainSoldProducts|drainRemaining|vxSold|vxSoldProducts|vxRemaining|valveSold|valveSoldProducts|valveRemaining)}}/g;
+    return template
+      .split("\n")
+      .flatMap((line) => {
+        const standaloneToken = /^([ \t]*){{([^{}]+)}}[ \t]*$/.exec(line);
+        if (standaloneToken && INVENTORY_REPORT_TEMPLATE_TOKEN_SET.has(standaloneToken[2])) {
+          const replacement = String(values[standaloneToken[2]] ?? "");
+          if (!replacement) return [];
+          return replacement.split("\n").map((replacementLine) => `${standaloneToken[1]}${replacementLine}`);
+        }
+        return [line.replace(tokenPattern, (_match, token) => values[token] ?? "")];
+      })
+      .join("\n");
+  }
+
   function formatFetchedAt(value) {
     if (!value) return "Đã đồng bộ";
     const date = new Date(value);
@@ -460,6 +616,8 @@
       products,
       areas,
       sales,
+      salesCopyTemplate: normalizeSalesCopyTemplate(payload?.salesCopyTemplate),
+      inventoryReportTemplate: normalizeInventoryReportTemplate(payload?.inventoryReportTemplate),
       counts,
       source: payload?.source && typeof payload.source === "object" ? payload.source : {},
     };
@@ -497,6 +655,8 @@
       state.products = normalized.products;
       state.areas = normalized.areas;
       state.sales = normalized.sales;
+      state.salesCopyTemplate = normalized.salesCopyTemplate;
+      state.inventoryReportTemplate = normalized.inventoryReportTemplate;
       state.counts = normalized.counts;
       state.savedCounts = { ...normalized.counts };
       state.source = normalized.source;
@@ -727,7 +887,11 @@
       if (existingProduct) {
         existingProduct.quantity += quantity;
       } else {
-        customerGroup.products.set(productKey, { name: sale.productName, quantity });
+        customerGroup.products.set(productKey, {
+          name: sale.productName,
+          sku: String(sale.matchedSku || "").trim(),
+          quantity,
+        });
       }
     });
 
@@ -761,14 +925,14 @@
                         aria-label="Sao chép thông tin khách hàng ${escapeHtml(customerGroup.customer)}"
                         title="Sao chép thông tin khách hàng"
                       >${icon("copy")}</button>
-                      <h4><span aria-hidden="true">−</span><span>Khách hàng ${escapeHtml(customerGroup.customer)}${customerGroup.phone ? ` - ${escapeHtml(customerGroup.phone)}` : ""}:</span></h4>
+                      <h4>Khách hàng ${escapeHtml(customerGroup.customer)}${customerGroup.phone ? ` - ${escapeHtml(customerGroup.phone)}` : ""}:</h4>
                       <ul class="sales-product-list">
                         ${customerGroup.products
                           .map(
                             (product) => `
                               <li>
                                 <span class="sales-product-plus" aria-hidden="true">+</span>
-                                <span class="sales-product-name">${escapeHtml(product.name)}</span>
+                                <span class="sales-product-name">${escapeHtml(product.name)}${product.sku ? ` <span class="sales-product-sku">( SKU: ${escapeHtml(product.sku)} )</span>` : ""}</span>
                                 <strong class="sales-product-quantity">x ${formatQuantity(product.quantity)}</strong>
                               </li>`,
                           )
@@ -785,13 +949,17 @@
     elements.salesDetailEmpty.hidden = staffGroups.length > 0;
   }
 
-  function customerSalesCopyText(customerGroup) {
-    const phone = customerGroup.phone || "Không có SĐT";
-    return [
-      `${formatNumericDate(state.date)} - ${phone} - Dạ em bán:`,
-      ...customerGroup.products.map((product) => `    + ${product.name} x ${formatQuantity(product.quantity)}`),
-      "Dạ em đã xuất File và CRM.",
-    ].join("\n");
+  function customerSalesCopyText(customerGroup, staff = "", template = state.salesCopyTemplate) {
+    const products = customerGroup.products
+      .map((product) => `    + ${product.name} x ${formatQuantity(product.quantity)}`)
+      .join("\n");
+    return fillSalesCopyTemplate(normalizeSalesCopyTemplate(template), {
+      date: formatNumericDate(state.date),
+      phone: customerGroup.phone || "Không có SĐT",
+      customer: customerGroup.customer || "Không rõ khách hàng",
+      staff: staff || "Không rõ nhân viên",
+      products,
+    });
   }
 
   async function writeClipboardText(value) {
@@ -831,7 +999,7 @@
 
     button.disabled = true;
     try {
-      await writeClipboardText(customerSalesCopyText(customerGroup));
+      await writeClipboardText(customerSalesCopyText(customerGroup, staffGroup.staff));
       button.classList.add("is-copied");
       button.innerHTML = icon("check");
       showToast("Đã sao chép thông tin khách hàng.");
@@ -972,32 +1140,36 @@
     );
   }
 
-  function buildInventoryReportLines() {
+  function inventoryReportTemplateValues() {
     const sales = inventoryReportSales();
+    return {
+      date: formatNumericDate(state.date),
+      ptsSold: formatQuantity(sales.pts.total),
+      ptsSoldProducts: inventoryReportSoldLines(sales.pts).join("\n"),
+      ptsRemaining: formatQuantity(inventoryReportCategoryQuantity("pts")),
+      drainSold: formatQuantity(sales.drain.total),
+      drainSoldProducts: inventoryReportSoldLines(sales.drain).join("\n"),
+      drainRemaining: inventoryReportRemainingLines(INVENTORY_REPORT_REMAINING.drain).join("\n"),
+      vxSold: formatQuantity(sales.vx.total),
+      vxSoldProducts: inventoryReportSoldLines(sales.vx).join("\n"),
+      vxRemaining: inventoryReportRemainingLines(INVENTORY_REPORT_REMAINING.vx).join("\n"),
+      valveSold: formatQuantity(sales.valve.total),
+      valveSoldProducts: inventoryReportSoldLines(sales.valve).join("\n"),
+      valveRemaining: inventoryReportRemainingLines(INVENTORY_REPORT_REMAINING.valve).join("\n"),
+    };
+  }
+
+  function buildInventoryReportLines(template = state.inventoryReportTemplate) {
+    const reportText = fillInventoryReportTemplate(
+      normalizeInventoryReportTemplate(template),
+      inventoryReportTemplateValues(),
+    );
     const line = (text, style = "normal") => ({ text, style });
-    return [
-      line(`Báo cáo kho PTS ngày ${formatNumericDate(state.date)}`, "heading"),
-      line(`Số lượng bán PTS: ${formatQuantity(sales.pts.total)}`, "heading"),
-      ...inventoryReportSoldLines(sales.pts).map((text) => line(text)),
-      line(`=> SL PTS còn lại: PTS: ${formatQuantity(inventoryReportCategoryQuantity("pts"))}`),
-      line(""),
-      line(`Số lượng bán Chân thoát: ${formatQuantity(sales.drain.total)}`, "heading"),
-      ...inventoryReportSoldLines(sales.drain).map((text) => line(text)),
-      line("=> SL Chân thoát còn lại:"),
-      ...inventoryReportRemainingLines(INVENTORY_REPORT_REMAINING.drain).map((text) => line(text)),
-      line(""),
-      line(`Số lượng bán VX: ${formatQuantity(sales.vx.total)}`, "heading"),
-      ...inventoryReportSoldLines(sales.vx).map((text) => line(text)),
-      line("=> SL VX còn lại:"),
-      ...inventoryReportRemainingLines(INVENTORY_REPORT_REMAINING.vx).map((text) => line(text)),
-      line(""),
-      line(`Số lượng bán Van Chia Nước: ${formatQuantity(sales.valve.total)}`, "heading"),
-      ...inventoryReportSoldLines(sales.valve).map((text) => line(text)),
-      line("=> SL Van chia nước còn lại:"),
-      ...inventoryReportRemainingLines(INVENTORY_REPORT_REMAINING.valve).map((text) => line(text)),
-      line(""),
-      line("=> Số lượng ĐỦ", "final"),
-    ];
+    return reportText.split("\n").map((text, index) => {
+      if (/^=>\s*Số lượng\b/i.test(text)) return line(text, "final");
+      if (index === 0 || /^Số lượng bán\b/i.test(text)) return line(text, "heading");
+      return line(text);
+    });
   }
 
   function inventoryReportPlainText(lines) {
@@ -1727,6 +1899,14 @@
 
     if (state.session.authenticated && !loading) {
       elements.adminUser.textContent = state.session.username ? `Xin chào, ${state.session.username}` : "Đã đăng nhập";
+      elements.inventoryReportTemplateCard.hidden = !state.ready;
+      elements.salesCopyTemplateCard.hidden = !state.ready;
+      elements.adminBoard.hidden = !state.ready;
+      if (!state.ready) {
+        elements.saveConfig.disabled = true;
+        elements.undoConfig.disabled = true;
+        return;
+      }
       ensureAdminDraft();
       renderAdminBoard();
     }
@@ -1791,6 +1971,7 @@
   }
 
   function ensureAdminDraft() {
+    if (!state.ready) return;
     if (state.adminDraft) {
       syncAdminDraftWithProducts();
       return;
@@ -1804,12 +1985,23 @@
         order: Number.isFinite(product.order) ? product.order : index,
       };
     });
-    state.adminDraft = { areas, assignments };
+    state.adminDraft = {
+      areas,
+      assignments,
+      salesCopyTemplate: state.salesCopyTemplate || DEFAULT_SALES_COPY_TEMPLATE,
+      inventoryReportTemplate: state.inventoryReportTemplate || DEFAULT_INVENTORY_REPORT_TEMPLATE,
+    };
     normalizeDraftOrders();
   }
 
   function syncAdminDraftWithProducts() {
     if (!state.adminDraft) return;
+    if (typeof state.adminDraft.salesCopyTemplate !== "string") {
+      state.adminDraft.salesCopyTemplate = state.salesCopyTemplate || DEFAULT_SALES_COPY_TEMPLATE;
+    }
+    if (typeof state.adminDraft.inventoryReportTemplate !== "string") {
+      state.adminDraft.inventoryReportTemplate = state.inventoryReportTemplate || DEFAULT_INVENTORY_REPORT_TEMPLATE;
+    }
     if (!state.adminDraft.areas.length) state.adminDraft.areas.push(state.areas[0] || "Khu A");
 
     const productSkus = new Set(state.products.map((product) => product.sku));
@@ -1849,6 +2041,8 @@
     if (!draft) return null;
     return {
       areas: [...draft.areas],
+      salesCopyTemplate: draft.salesCopyTemplate,
+      inventoryReportTemplate: draft.inventoryReportTemplate,
       assignments: Object.fromEntries(
         Object.entries(draft.assignments).map(([sku, assignment]) => [
           sku,
@@ -1869,14 +2063,144 @@
     return true;
   }
 
+  function renderSalesCopyTemplateEditor({ syncInput = true } = {}) {
+    if (!state.adminDraft || !elements.salesCopyTemplate) return;
+    const template = state.adminDraft.salesCopyTemplate;
+    const validation = validateSalesCopyTemplate(template);
+    if (syncInput && document.activeElement !== elements.salesCopyTemplate) {
+      elements.salesCopyTemplate.value = template;
+    }
+    elements.salesCopyTemplate.setAttribute("aria-invalid", String(Boolean(validation.error)));
+    elements.salesCopyTemplateError.textContent = validation.error;
+    elements.salesCopyTemplateError.hidden = !validation.error;
+    elements.resetSalesCopyTemplate.disabled =
+      state.configSaving || template === DEFAULT_SALES_COPY_TEMPLATE;
+
+    if (validation.error) {
+      elements.salesCopyTemplatePreview.textContent = "Sửa lỗi trong mẫu để xem trước nội dung copy.";
+      return;
+    }
+    elements.salesCopyTemplatePreview.textContent = customerSalesCopyText(
+      {
+        customer: "Khách hàng mẫu",
+        phone: "0797509509",
+        products: [{ name: "VX SS304 Xám T1", quantity: 1 }],
+      },
+      "Nhân viên mẫu",
+      validation.value,
+    );
+  }
+
+  function beginSalesCopyTemplateEdit() {
+    if (!state.ready || !state.adminDraft || state.configSaving) return;
+    salesCopyTemplateEditSession = { previous: captureAdminState(), committed: false };
+  }
+
+  function updateSalesCopyTemplateDraft() {
+    if (!state.ready || !state.adminDraft || state.configSaving) return;
+    if (!salesCopyTemplateEditSession) beginSalesCopyTemplateEdit();
+    state.adminDraft.salesCopyTemplate = elements.salesCopyTemplate.value.replace(/\r\n?/g, "\n");
+    const editSession = salesCopyTemplateEditSession;
+    if (
+      editSession &&
+      !editSession.committed &&
+      JSON.stringify(editSession.previous.draft) !== JSON.stringify(state.adminDraft)
+    ) {
+      state.adminHistory.push(editSession.previous);
+      editSession.committed = true;
+    }
+    setConfigDirty(true);
+    renderSalesCopyTemplateEditor({ syncInput: false });
+  }
+
+  function resetSalesCopyTemplate() {
+    if (
+      !state.ready ||
+      !state.adminDraft ||
+      state.configSaving ||
+      state.adminDraft.salesCopyTemplate === DEFAULT_SALES_COPY_TEMPLATE
+    ) return;
+    salesCopyTemplateEditSession = null;
+    const previous = captureAdminState();
+    state.adminDraft.salesCopyTemplate = DEFAULT_SALES_COPY_TEMPLATE;
+    commitAdminChange(previous);
+    renderSalesCopyTemplateEditor();
+    showToast("Đã khôi phục mẫu copy mặc định. Hãy lưu cấu hình để áp dụng.");
+  }
+
+  function renderInventoryReportTemplateEditor({ syncInput = true } = {}) {
+    if (!state.adminDraft || !elements.inventoryReportTemplate) return;
+    const template = state.adminDraft.inventoryReportTemplate;
+    const validation = validateInventoryReportTemplate(template);
+    if (syncInput && document.activeElement !== elements.inventoryReportTemplate) {
+      elements.inventoryReportTemplate.value = template;
+    }
+    elements.inventoryReportTemplate.setAttribute("aria-invalid", String(Boolean(validation.error)));
+    elements.inventoryReportTemplateError.textContent = validation.error;
+    elements.inventoryReportTemplateError.hidden = !validation.error;
+    elements.resetInventoryReportTemplate.disabled =
+      state.configSaving || template === DEFAULT_INVENTORY_REPORT_TEMPLATE;
+
+    elements.inventoryReportTemplatePreview.textContent = validation.error
+      ? "Sửa lỗi trong mẫu để xem trước nội dung báo cáo kho."
+      : inventoryReportPlainText(buildInventoryReportLines(validation.value));
+  }
+
+  function beginInventoryReportTemplateEdit() {
+    if (!state.ready || !state.adminDraft || state.configSaving) return;
+    inventoryReportTemplateEditSession = { previous: captureAdminState(), committed: false };
+  }
+
+  function updateInventoryReportTemplateDraft() {
+    if (!state.ready || !state.adminDraft || state.configSaving) return;
+    if (!inventoryReportTemplateEditSession) beginInventoryReportTemplateEdit();
+    state.adminDraft.inventoryReportTemplate = elements.inventoryReportTemplate.value.replace(/\r\n?/g, "\n");
+    const editSession = inventoryReportTemplateEditSession;
+    if (
+      editSession &&
+      !editSession.committed &&
+      JSON.stringify(editSession.previous.draft) !== JSON.stringify(state.adminDraft)
+    ) {
+      state.adminHistory.push(editSession.previous);
+      editSession.committed = true;
+    }
+    setConfigDirty(true);
+    renderInventoryReportTemplateEditor({ syncInput: false });
+  }
+
+  function resetInventoryReportTemplate() {
+    if (
+      !state.ready ||
+      !state.adminDraft ||
+      state.configSaving ||
+      state.adminDraft.inventoryReportTemplate === DEFAULT_INVENTORY_REPORT_TEMPLATE
+    ) return;
+    inventoryReportTemplateEditSession = null;
+    const previous = captureAdminState();
+    state.adminDraft.inventoryReportTemplate = DEFAULT_INVENTORY_REPORT_TEMPLATE;
+    commitAdminChange(previous);
+    renderInventoryReportTemplateEditor();
+    showToast("Đã khôi phục mẫu báo cáo kho mặc định. Hãy lưu cấu hình để áp dụng.");
+  }
+
   function setConfigDirty(dirty = true) {
     state.configDirty = dirty;
+    const templateInvalid = Boolean(state.adminDraft && (
+      validateSalesCopyTemplate(state.adminDraft.salesCopyTemplate).error ||
+      validateInventoryReportTemplate(state.adminDraft.inventoryReportTemplate).error
+    ));
     elements.unsavedDot.hidden = !dirty;
-    elements.saveConfig.disabled = !dirty || state.configSaving;
+    elements.saveConfig.disabled = !dirty || state.configSaving || templateInvalid;
     elements.undoConfig.disabled = !state.adminHistory.length || state.configSaving;
   }
 
   function setAdminConfigBusy(busy) {
+    elements.inventoryReportTemplateCard.inert = busy;
+    elements.inventoryReportTemplateCard.classList.toggle("is-saving", busy);
+    elements.inventoryReportTemplateCard.setAttribute("aria-busy", String(busy));
+    elements.salesCopyTemplateCard.inert = busy;
+    elements.salesCopyTemplateCard.classList.toggle("is-saving", busy);
+    elements.salesCopyTemplateCard.setAttribute("aria-busy", String(busy));
     elements.adminBoard.inert = busy;
     elements.adminBoard.classList.toggle("is-saving", busy);
     elements.adminBoard.setAttribute("aria-busy", String(busy));
@@ -1886,6 +2210,8 @@
 
   function undoAdminConfig() {
     if (!state.adminDraft || !state.adminHistory.length || state.configSaving) return;
+    salesCopyTemplateEditSession = null;
+    inventoryReportTemplateEditSession = null;
     cancelDrag();
     cancelLaneDrag();
     if (state.dialog) closeAreaDialog();
@@ -2085,7 +2411,12 @@
 
   function renderAdminBoard() {
     if (!state.session.authenticated || !state.ready) return;
+    elements.inventoryReportTemplateCard.hidden = false;
+    elements.salesCopyTemplateCard.hidden = false;
+    elements.adminBoard.hidden = false;
     ensureAdminDraft();
+    renderInventoryReportTemplateEditor();
+    renderSalesCopyTemplateEditor();
     const previousHorizontalScroll = $(".assigned-lanes", elements.adminBoard)?.scrollLeft || 0;
     const previousLaneScroll = new Map(
       $$(".admin-lane", elements.adminBoard).map((lane) => [lane.dataset.adminArea, $(".lane-products", lane)?.scrollTop || 0]),
@@ -2583,10 +2914,26 @@
   }
 
   async function saveConfig() {
-    if (!state.adminDraft || !state.configDirty || state.configSaving) return;
+    if (!state.ready || !state.adminDraft || !state.configDirty || state.configSaving) return;
     cancelDrag();
     cancelLaneDrag();
     normalizeDraftOrders();
+    const inventoryTemplateValidation = validateInventoryReportTemplate(state.adminDraft.inventoryReportTemplate);
+    if (inventoryTemplateValidation.error) {
+      renderInventoryReportTemplateEditor();
+      elements.inventoryReportTemplate.focus();
+      showToast(inventoryTemplateValidation.error, "error", 4500);
+      return;
+    }
+    const templateValidation = validateSalesCopyTemplate(state.adminDraft.salesCopyTemplate);
+    if (templateValidation.error) {
+      renderSalesCopyTemplateEditor();
+      elements.salesCopyTemplate.focus();
+      showToast(templateValidation.error, "error", 4500);
+      return;
+    }
+    state.adminDraft.inventoryReportTemplate = inventoryTemplateValidation.value;
+    state.adminDraft.salesCopyTemplate = templateValidation.value;
     state.configSaving = true;
     setAdminConfigBusy(true);
     setConfigDirty(true);
@@ -2594,6 +2941,8 @@
 
     const body = {
       areas: [...state.adminDraft.areas],
+      salesCopyTemplate: state.adminDraft.salesCopyTemplate,
+      inventoryReportTemplate: state.adminDraft.inventoryReportTemplate,
       assignments: Object.fromEntries(
         Object.entries(state.adminDraft.assignments)
           .filter(([, assignment]) => assignment.area !== UNASSIGNED_AREA)
@@ -2605,6 +2954,10 @@
       const payload = await api(API.config, { method: "PUT", body });
       const savedAreas = Array.isArray(payload?.areas) ? uniqueStrings(payload.areas) : body.areas;
       const savedAssignments = payload?.assignments && typeof payload.assignments === "object" ? payload.assignments : body.assignments;
+      state.salesCopyTemplate = normalizeSalesCopyTemplate(payload?.salesCopyTemplate ?? body.salesCopyTemplate);
+      state.inventoryReportTemplate = normalizeInventoryReportTemplate(
+        payload?.inventoryReportTemplate ?? body.inventoryReportTemplate,
+      );
       state.areas = savedAreas;
       state.products.forEach((product) => {
         const assignment = savedAssignments[product.sku] || body.assignments[product.sku];
@@ -2621,7 +2974,7 @@
       state.configDirty = false;
       renderCount();
       renderAdminBoard();
-      showToast("Đã lưu cấu hình phân khu.");
+      showToast("Đã lưu cấu hình.");
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         state.session.authenticated = false;
@@ -2639,6 +2992,8 @@
       setAdminConfigBusy(false);
       setButtonBusy(elements.saveConfig, false);
       setConfigDirty(state.configDirty);
+      renderInventoryReportTemplateEditor();
+      renderSalesCopyTemplateEditor();
     }
   }
 
@@ -2742,6 +3097,18 @@
     elements.logoutButton.addEventListener("click", handleLogout);
     elements.undoConfig.addEventListener("click", undoAdminConfig);
     elements.saveConfig.addEventListener("click", saveConfig);
+    elements.salesCopyTemplate.addEventListener("focus", beginSalesCopyTemplateEdit);
+    elements.salesCopyTemplate.addEventListener("input", updateSalesCopyTemplateDraft);
+    elements.salesCopyTemplate.addEventListener("blur", () => {
+      salesCopyTemplateEditSession = null;
+    });
+    elements.resetSalesCopyTemplate.addEventListener("click", resetSalesCopyTemplate);
+    elements.inventoryReportTemplate.addEventListener("focus", beginInventoryReportTemplateEdit);
+    elements.inventoryReportTemplate.addEventListener("input", updateInventoryReportTemplateDraft);
+    elements.inventoryReportTemplate.addEventListener("blur", () => {
+      inventoryReportTemplateEditSession = null;
+    });
+    elements.resetInventoryReportTemplate.addEventListener("click", resetInventoryReportTemplate);
 
     elements.adminBoard.addEventListener("click", (event) => {
       const action = event.target.closest("[data-admin-action]");

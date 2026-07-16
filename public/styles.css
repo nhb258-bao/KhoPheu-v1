@@ -612,8 +612,8 @@ h2 {
 
 .sales-customer-group h4 {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
   margin: 0 0 8px;
   color: var(--ink-soft);
   font-size: 12px;
@@ -649,6 +649,13 @@ h2 {
 .sales-product-name {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.sales-product-sku {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .sales-product-quantity {
@@ -1986,6 +1993,127 @@ h2 {
   min-width: 148px;
 }
 
+.admin-template-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 12px 18px;
+  margin: 0 1px 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgb(255 255 255 / 72%);
+  box-shadow: var(--shadow-xs);
+}
+
+.admin-template-card.is-saving {
+  opacity: 0.68;
+  transition: opacity 160ms ease;
+}
+
+.admin-template-heading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.admin-template-heading .eyebrow {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.admin-template-reset {
+  flex: 0 0 auto;
+}
+
+.admin-template-field {
+  grid-column: 1;
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-template-field textarea {
+  width: 100%;
+  min-height: 132px;
+  padding: 12px 13px;
+  resize: vertical;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  outline: 0;
+  color: var(--ink);
+  background: var(--surface);
+  font: 500 13px/1.55 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.admin-template-field textarea:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgb(23 107 76 / 12%);
+}
+
+.admin-template-field textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.inventory-report-template-card .admin-template-field textarea {
+  min-height: 440px;
+}
+
+.admin-template-help {
+  grid-column: 1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.admin-template-help code {
+  padding: 2px 5px;
+  border-radius: 5px;
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-template-error {
+  grid-column: 1;
+  margin: 0;
+}
+
+.admin-template-preview {
+  grid-column: 2;
+  grid-row: 2 / span 3;
+  min-width: 0;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+}
+
+.admin-template-preview strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-template-preview pre {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink-soft);
+  font: 500 13px/1.55 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  white-space: pre-wrap;
+}
+
 .admin-board {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(290px, 330px);
@@ -3183,6 +3311,38 @@ body.is-dragging * {
     min-width: 0;
     padding-inline: 8px;
     font-size: 11px;
+  }
+
+  .admin-template-card {
+    grid-template-columns: 1fr;
+    gap: 11px;
+    margin-inline: 0;
+    padding: 15px;
+  }
+
+  .admin-template-heading {
+    display: grid;
+    gap: 12px;
+  }
+
+  .admin-template-reset {
+    width: 100%;
+  }
+
+  .admin-template-field,
+  .admin-template-help,
+  .admin-template-error,
+  .admin-template-preview {
+    grid-column: 1;
+  }
+
+  .admin-template-preview {
+    grid-row: auto;
+  }
+
+  .admin-template-field textarea {
+    min-height: 150px;
+    font-size: 12px;
   }
 
   .admin-board {

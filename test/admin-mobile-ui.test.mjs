@@ -76,6 +76,6 @@ test("mobile chặn kéo thả sản phẩm và khu nhưng giữ điều khiển
   assert.match(renderBlock, /data-admin-action="up"/);
   assert.match(renderBlock, /data-admin-action="down"/);
   assert.match(app, /Chọn khu trên thẻ sản phẩm để chuyển vào đây/);
-  assert.match(html, /styles\.css\?v=69/);
-  assert.match(html, /app\.js\?v=69/);
+  assert.match(html, /styles\.css\?v=74/);
+  assert.match(html, /app\.js\?v=74/);
 });

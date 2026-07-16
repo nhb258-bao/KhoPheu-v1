@@ -245,6 +245,8 @@ export function createApplication({
           products,
           sales,
           areas: config.areas,
+          salesCopyTemplate: config.salesCopyTemplate,
+          inventoryReportTemplate: config.inventoryReportTemplate,
           counts,
           source: {
             inventory: inventoryResult.source,
@@ -311,7 +313,19 @@ export function createApplication({
       if (pathname === "/api/config") {
         onlyMethod(request, "PUT");
         if (!sessions.read(request.headers.cookie)) throw unauthorized();
-        const config = validateConfig(await readJson(request));
+        const body = await readJson(request);
+        let configValue = body;
+        const templateKeys = ["salesCopyTemplate", "inventoryReportTemplate"];
+        const missingTemplateKeys =
+          body && typeof body === "object" && !Array.isArray(body)
+            ? templateKeys.filter((key) => !Object.prototype.hasOwnProperty.call(body, key))
+            : [];
+        if (missingTemplateKeys.length) {
+          const currentConfig = await store.getConfig();
+          configValue = { ...body };
+          for (const key of missingTemplateKeys) configValue[key] = currentConfig?.[key];
+        }
+        const config = validateConfig(configValue);
         await store.putConfig(config);
         sendJson(response, 200, config);
         return;

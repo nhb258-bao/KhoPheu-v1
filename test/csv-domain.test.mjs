@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 
 import { parseCsv } from "../src/lib/csv.mjs";
 import {
+  DEFAULT_INVENTORY_REPORT_TEMPLATE,
+  DEFAULT_SALES_COPY_TEMPLATE,
   decorateProducts,
   isIsoDate,
   normalizeText,
@@ -96,6 +98,8 @@ test("validation cấu hình và số đếm trả dữ liệu đã chuẩn hóa
   assert.deepEqual(JSON.parse(JSON.stringify(config)), {
     areas: ["A", "B"],
     assignments: { PVN4279: { area: "A", order: 2 } },
+    salesCopyTemplate: DEFAULT_SALES_COPY_TEMPLATE,
+    inventoryReportTemplate: DEFAULT_INVENTORY_REPORT_TEMPLATE,
   });
   assert.deepEqual(validateCountPatch({ sku: " pvn4279 ", actual: 0 }), {
     sku: "PVN4279",
@@ -112,5 +116,130 @@ test("validation cấu hình và số đếm trả dữ liệu đã chuẩn hóa
   assert.throws(
     () => validateCountPatch({ sku: "PVN4279", actual: 1, expectedActual: 1.5 }),
     /kỳ vọng.*số nguyên/i,
+  );
+});
+
+test("validation mẫu sao chép giữ định dạng và chỉ nhận placeholder được hỗ trợ", () => {
+  const baseConfig = { areas: ["A"], assignments: {} };
+  const customTemplate = [
+    "  {{date}} - {{phone}} - {{customer}} - {{staff}}\r\n",
+    "\t{{products}}  ",
+  ].join("");
+  assert.equal(
+    validateConfig({ ...baseConfig, salesCopyTemplate: customTemplate }).salesCopyTemplate,
+    "{{date}} - {{phone}} - {{customer}} - {{staff}}\n\t{{products}}",
+  );
+
+  const maximumTemplate = `{{products}}${"x".repeat(4_000 - "{{products}}".length)}`;
+  assert.equal(
+    validateConfig({ ...baseConfig, salesCopyTemplate: maximumTemplate }).salesCopyTemplate.length,
+    4_000,
+  );
+
+  assert.throws(
+    () => validateConfig({ ...baseConfig, salesCopyTemplate: null }),
+    /phải là chuỗi/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, salesCopyTemplate: "   \r\n\t" }),
+    /1 đến 4000/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, salesCopyTemplate: `${maximumTemplate}x` }),
+    /1 đến 4000/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, salesCopyTemplate: "{{products}}\u000b" }),
+    /ký tự điều khiển/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, salesCopyTemplate: "{{products}}\n{{unknown}}" }),
+    /không được hỗ trợ/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, salesCopyTemplate: "{{products}}\n{{customer" }),
+    /cú pháp biến/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, salesCopyTemplate: "Không có danh sách sản phẩm" }),
+    /\{\{products\}\} đúng một lần/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, salesCopyTemplate: "{{products}}\n{{products}}" }),
+    /\{\{products\}\} đúng một lần/i,
+  );
+});
+
+test("validation mẫu báo cáo kho chuẩn hóa nội dung và bắt buộc mỗi placeholder đúng một lần", () => {
+  const baseConfig = { areas: ["A"], assignments: {} };
+  const tokens = [
+    "date",
+    "ptsSold",
+    "ptsSoldProducts",
+    "ptsRemaining",
+    "drainSold",
+    "drainSoldProducts",
+    "drainRemaining",
+    "vxSold",
+    "vxSoldProducts",
+    "vxRemaining",
+    "valveSold",
+    "valveSoldProducts",
+    "valveRemaining",
+  ];
+  const tokenText = tokens.map((token) => `{{${token}}}`).join("\n");
+  const customTemplate = `  ${tokenText.replace(/\n/g, "\r\n")}  `;
+
+  assert.equal(
+    validateConfig({ ...baseConfig, inventoryReportTemplate: customTemplate }).inventoryReportTemplate,
+    tokenText,
+  );
+  assert.equal(
+    validateConfig({ ...baseConfig, inventoryReportTemplate: `${tokenText}\nGhi chú: {nội bộ}` })
+      .inventoryReportTemplate,
+    `${tokenText}\nGhi chú: {nội bộ}`,
+  );
+  assert.equal(
+    validateConfig(baseConfig).inventoryReportTemplate,
+    DEFAULT_INVENTORY_REPORT_TEMPLATE,
+  );
+
+  const maximumTemplate = `${tokenText}${"x".repeat(8_000 - tokenText.length)}`;
+  assert.equal(
+    validateConfig({ ...baseConfig, inventoryReportTemplate: maximumTemplate }).inventoryReportTemplate.length,
+    8_000,
+  );
+
+  assert.throws(
+    () => validateConfig({ ...baseConfig, inventoryReportTemplate: null }),
+    /phải là chuỗi/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, inventoryReportTemplate: " \r\n\t " }),
+    /1 đến 8000/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, inventoryReportTemplate: `${maximumTemplate}x` }),
+    /1 đến 8000/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, inventoryReportTemplate: `${tokenText}\u000b` }),
+    /ký tự điều khiển/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, inventoryReportTemplate: `${tokenText}\n{{unknown}}` }),
+    /không được hỗ trợ/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, inventoryReportTemplate: `${tokenText}\n{{broken` }),
+    /cú pháp biến/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, inventoryReportTemplate: tokenText.replace("{{date}}", "ngày") }),
+    /\{\{date\}\} đúng một lần/i,
+  );
+  assert.throws(
+    () => validateConfig({ ...baseConfig, inventoryReportTemplate: `${tokenText}\n{{date}}` }),
+    /\{\{date\}\} đúng một lần/i,
   );
 });

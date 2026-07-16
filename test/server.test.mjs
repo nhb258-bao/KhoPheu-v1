@@ -3,7 +3,12 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 
 import { createApplication } from "../server.mjs";
-import { dateInTimeZone, VIETNAM_TIME_ZONE } from "../src/lib/domain.mjs";
+import {
+  DEFAULT_INVENTORY_REPORT_TEMPLATE,
+  DEFAULT_SALES_COPY_TEMPLATE,
+  dateInTimeZone,
+  VIETNAM_TIME_ZONE,
+} from "../src/lib/domain.mjs";
 import { AppError } from "../src/lib/errors.mjs";
 import { SessionManager } from "../src/lib/session.mjs";
 
@@ -72,6 +77,8 @@ test("API bootstrap, count, login và config tuân theo contract", async (t) => 
   });
   assert.equal("note" in bootstrap.sales[0], false);
   assert.deepEqual(bootstrap.counts, {});
+  assert.equal(bootstrap.salesCopyTemplate, DEFAULT_SALES_COPY_TEMPLATE);
+  assert.equal(bootstrap.inventoryReportTemplate, DEFAULT_INVENTORY_REPORT_TEMPLATE);
 
   const countResponse = await fetch(`${base}/api/counts/${today}`, {
     method: "PATCH",
@@ -128,7 +135,21 @@ test("API bootstrap, count, login và config tuân theo contract", async (t) => 
   });
   assert.equal(login.status, 200);
   const cookie = login.headers.get("set-cookie").split(";", 1)[0];
-  const newConfig = { areas: ["X"], assignments: { PVN4279: { area: "X", order: 1 } } };
+  const customSalesCopyTemplate = [
+    "{{date}} - {{phone}} - Dạ em bán:",
+    "  {{products}}",
+    "Khách hàng: {{customer}} - Nhân viên: {{staff}}",
+  ].join("\n");
+  const customInventoryReportTemplate = DEFAULT_INVENTORY_REPORT_TEMPLATE.replace(
+    "Báo cáo kho PTS",
+    "BÁO CÁO KHO CUỐI CA PTS",
+  );
+  const newConfig = {
+    areas: ["X"],
+    assignments: { PVN4279: { area: "X", order: 1 } },
+    salesCopyTemplate: customSalesCopyTemplate,
+    inventoryReportTemplate: customInventoryReportTemplate,
+  };
   const saved = await fetch(`${base}/api/config`, {
     method: "PUT",
     headers: { "content-type": "application/json", cookie },
@@ -136,6 +157,85 @@ test("API bootstrap, count, login và config tuân theo contract", async (t) => 
   });
   assert.equal(saved.status, 200);
   assert.deepEqual(await saved.json(), newConfig);
+
+  const refreshedBootstrap = await fetch(`${base}/api/bootstrap?date=${today}`);
+  assert.equal(refreshedBootstrap.status, 200);
+  const refreshedBootstrapPayload = await refreshedBootstrap.json();
+  assert.equal(refreshedBootstrapPayload.salesCopyTemplate, customSalesCopyTemplate);
+  assert.equal(refreshedBootstrapPayload.inventoryReportTemplate, customInventoryReportTemplate);
+
+  const invalidTemplate = await fetch(`${base}/api/config`, {
+    method: "PUT",
+    headers: { "content-type": "application/json", cookie },
+    body: JSON.stringify({ ...newConfig, salesCopyTemplate: "{{products}} {{unknown}}" }),
+  });
+  assert.equal(invalidTemplate.status, 400);
+  assert.equal(savedConfig.salesCopyTemplate, customSalesCopyTemplate);
+
+  const invalidInventoryTemplate = await fetch(`${base}/api/config`, {
+    method: "PUT",
+    headers: { "content-type": "application/json", cookie },
+    body: JSON.stringify({
+      ...newConfig,
+      inventoryReportTemplate: customInventoryReportTemplate.replace("{{date}}", "{{unknown}}"),
+    }),
+  });
+  assert.equal(invalidInventoryTemplate.status, 400);
+  assert.equal(savedConfig.inventoryReportTemplate, customInventoryReportTemplate);
+
+  const legacyConfig = { areas: ["Y"], assignments: { PVN4279: { area: "Y", order: 0 } } };
+  const legacySaved = await fetch(`${base}/api/config`, {
+    method: "PUT",
+    headers: { "content-type": "application/json", cookie },
+    body: JSON.stringify(legacyConfig),
+  });
+  assert.equal(legacySaved.status, 200);
+  assert.deepEqual(await legacySaved.json(), {
+    ...legacyConfig,
+    salesCopyTemplate: customSalesCopyTemplate,
+    inventoryReportTemplate: customInventoryReportTemplate,
+  });
+  assert.equal(savedConfig.salesCopyTemplate, customSalesCopyTemplate);
+  assert.equal(savedConfig.inventoryReportTemplate, customInventoryReportTemplate);
+
+  const updatedSalesCopyTemplate = "Báo khách: {{products}}";
+  const salesOnlyConfig = {
+    areas: ["Z"],
+    assignments: { PVN4279: { area: "Z", order: 0 } },
+    salesCopyTemplate: updatedSalesCopyTemplate,
+  };
+  const salesOnlySaved = await fetch(`${base}/api/config`, {
+    method: "PUT",
+    headers: { "content-type": "application/json", cookie },
+    body: JSON.stringify(salesOnlyConfig),
+  });
+  assert.equal(salesOnlySaved.status, 200);
+  assert.deepEqual(await salesOnlySaved.json(), {
+    ...salesOnlyConfig,
+    inventoryReportTemplate: customInventoryReportTemplate,
+  });
+
+  const updatedInventoryReportTemplate = customInventoryReportTemplate.replace(
+    "BÁO CÁO KHO CUỐI CA PTS",
+    "BÁO CÁO TỒN KHO PTS",
+  );
+  const inventoryOnlyConfig = {
+    areas: ["W"],
+    assignments: { PVN4279: { area: "W", order: 0 } },
+    inventoryReportTemplate: updatedInventoryReportTemplate,
+  };
+  const inventoryOnlySaved = await fetch(`${base}/api/config`, {
+    method: "PUT",
+    headers: { "content-type": "application/json", cookie },
+    body: JSON.stringify(inventoryOnlyConfig),
+  });
+  assert.equal(inventoryOnlySaved.status, 200);
+  assert.deepEqual(await inventoryOnlySaved.json(), {
+    ...inventoryOnlyConfig,
+    salesCopyTemplate: updatedSalesCopyTemplate,
+  });
+  assert.equal(savedConfig.salesCopyTemplate, updatedSalesCopyTemplate);
+  assert.equal(savedConfig.inventoryReportTemplate, updatedInventoryReportTemplate);
 
   const session = await fetch(`${base}/api/session`, { headers: { cookie } });
   assert.deepEqual(await session.json(), { authenticated: true, username: "admin" });

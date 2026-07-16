@@ -2,6 +2,55 @@ import { badRequest } from "./errors.mjs";
 
 const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
 
+export const DEFAULT_SALES_COPY_TEMPLATE = [
+  "{{date}} - {{phone}} - Dạ em bán:",
+  "{{products}}",
+  "Dạ em đã xuất File và CRM.",
+].join("\n");
+
+export const DEFAULT_INVENTORY_REPORT_TEMPLATE = [
+  "Báo cáo kho PTS ngày {{date}}",
+  "Số lượng bán PTS: {{ptsSold}}",
+  "{{ptsSoldProducts}}",
+  "=> SL PTS còn lại: PTS: {{ptsRemaining}}",
+  "",
+  "Số lượng bán Chân thoát: {{drainSold}}",
+  "{{drainSoldProducts}}",
+  "=> SL Chân thoát còn lại:",
+  "{{drainRemaining}}",
+  "",
+  "Số lượng bán VX: {{vxSold}}",
+  "{{vxSoldProducts}}",
+  "=> SL VX còn lại:",
+  "{{vxRemaining}}",
+  "",
+  "Số lượng bán Van Chia Nước: {{valveSold}}",
+  "{{valveSoldProducts}}",
+  "=> SL Van chia nước còn lại:",
+  "{{valveRemaining}}",
+  "",
+  "=> Số lượng ĐỦ",
+].join("\n");
+
+const SALES_COPY_TEMPLATE_MAX_LENGTH = 4_000;
+const SALES_COPY_TEMPLATE_TOKENS = new Set(["date", "phone", "customer", "staff", "products"]);
+const INVENTORY_REPORT_TEMPLATE_MAX_LENGTH = 8_000;
+const INVENTORY_REPORT_TEMPLATE_TOKENS = new Set([
+  "date",
+  "ptsSold",
+  "ptsSoldProducts",
+  "ptsRemaining",
+  "drainSold",
+  "drainSoldProducts",
+  "drainRemaining",
+  "vxSold",
+  "vxSoldProducts",
+  "vxRemaining",
+  "valveSold",
+  "valveSoldProducts",
+  "valveRemaining",
+]);
+
 export function cleanText(value) {
   return String(value ?? "").replace(/\s+/gu, " ").trim();
 }
@@ -236,6 +285,80 @@ function plainObject(value) {
   return prototype === Object.prototype || prototype === null;
 }
 
+function validateSalesCopyTemplate(value) {
+  const rawTemplate = value === undefined ? DEFAULT_SALES_COPY_TEMPLATE : value;
+  if (typeof rawTemplate !== "string") {
+    throw badRequest("Mẫu sao chép bán hàng phải là chuỗi.");
+  }
+
+  const normalizedTemplate = rawTemplate.replace(/\r\n?/gu, "\n");
+  if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(normalizedTemplate)) {
+    throw badRequest("Mẫu sao chép bán hàng chứa ký tự điều khiển không hợp lệ.");
+  }
+
+  const template = normalizedTemplate.trim();
+  if (!template || template.length > SALES_COPY_TEMPLATE_MAX_LENGTH) {
+    throw badRequest("Mẫu sao chép bán hàng phải có từ 1 đến 4000 ký tự.");
+  }
+
+  let productsTokenCount = 0;
+  for (const match of template.matchAll(/\{\{([^{}]*)\}\}/gu)) {
+    const token = match[1];
+    if (!SALES_COPY_TEMPLATE_TOKENS.has(token)) {
+      throw badRequest(`Biến mẫu không được hỗ trợ: ${match[0]}.`);
+    }
+    if (token === "products") productsTokenCount += 1;
+  }
+  const templateWithoutTokens = template.replace(/\{\{[^{}]*\}\}/gu, "");
+  if (templateWithoutTokens.includes("{{") || templateWithoutTokens.includes("}}")) {
+    throw badRequest("Cú pháp biến trong mẫu sao chép bán hàng không hợp lệ.");
+  }
+  if (productsTokenCount !== 1) {
+    throw badRequest("Mẫu sao chép bán hàng phải chứa {{products}} đúng một lần.");
+  }
+
+  return template;
+}
+
+function validateInventoryReportTemplate(value) {
+  const rawTemplate = value === undefined ? DEFAULT_INVENTORY_REPORT_TEMPLATE : value;
+  if (typeof rawTemplate !== "string") {
+    throw badRequest("Mẫu báo cáo kho cuối ca phải là chuỗi.");
+  }
+
+  const normalizedTemplate = rawTemplate.replace(/\r\n?/gu, "\n");
+  if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(normalizedTemplate)) {
+    throw badRequest("Mẫu báo cáo kho cuối ca chứa ký tự điều khiển không hợp lệ.");
+  }
+
+  const template = normalizedTemplate.trim();
+  if (!template || template.length > INVENTORY_REPORT_TEMPLATE_MAX_LENGTH) {
+    throw badRequest("Mẫu báo cáo kho cuối ca phải có từ 1 đến 8000 ký tự.");
+  }
+
+  const tokenCounts = new Map(Array.from(INVENTORY_REPORT_TEMPLATE_TOKENS, (token) => [token, 0]));
+  for (const match of template.matchAll(/\{\{([^{}]*)\}\}/gu)) {
+    const token = match[1];
+    if (!INVENTORY_REPORT_TEMPLATE_TOKENS.has(token)) {
+      throw badRequest(`Biến mẫu báo cáo kho không được hỗ trợ: ${match[0]}.`);
+    }
+    tokenCounts.set(token, tokenCounts.get(token) + 1);
+  }
+
+  const templateWithoutTokens = template.replace(/\{\{[^{}]*\}\}/gu, "");
+  if (templateWithoutTokens.includes("{{") || templateWithoutTokens.includes("}}")) {
+    throw badRequest("Cú pháp biến trong mẫu báo cáo kho cuối ca không hợp lệ.");
+  }
+
+  for (const [token, count] of tokenCounts) {
+    if (count !== 1) {
+      throw badRequest(`Mẫu báo cáo kho cuối ca phải chứa {{${token}}} đúng một lần.`);
+    }
+  }
+
+  return template;
+}
+
 export function validateConfig(value) {
   if (!plainObject(value) || !Array.isArray(value.areas) || !plainObject(value.assignments)) {
     throw badRequest("Cấu hình phải gồm areas và assignments.");
@@ -273,7 +396,9 @@ export function validateConfig(value) {
     assignments[sku] = { area, order: assignment.order };
   }
 
-  return { areas, assignments };
+  const salesCopyTemplate = validateSalesCopyTemplate(value.salesCopyTemplate);
+  const inventoryReportTemplate = validateInventoryReportTemplate(value.inventoryReportTemplate);
+  return { areas, assignments, salesCopyTemplate, inventoryReportTemplate };
 }
 
 export function validateCountPatch(value) {

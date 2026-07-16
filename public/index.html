@@ -11,7 +11,7 @@
     <title>Kho Phễu · Đếm cuối ca</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="stylesheet" href="/styles.css?v=69" />
+    <link rel="stylesheet" href="/styles.css?v=74" />
   </head>
   <body>
     <svg class="svg-sprite" aria-hidden="true">
@@ -343,6 +343,57 @@
           </section>
 
           <div id="admin-board" class="admin-board" aria-label="Các khu sản phẩm"></div>
+
+          <section id="sales-copy-template-card" class="admin-template-card" aria-labelledby="sales-copy-template-title">
+            <header class="admin-template-heading">
+              <p class="eyebrow" id="sales-copy-template-title">MẪU FORM BÁO CÁO KHÁCH MUA HÀNG</p>
+              <button class="button button-secondary admin-template-reset" id="reset-sales-copy-template" type="button">
+                Khôi phục mẫu mặc định
+              </button>
+            </header>
+            <label class="admin-template-field" for="sales-copy-template">
+              <span>Form mẫu</span>
+              <textarea id="sales-copy-template" rows="5" maxlength="4000" spellcheck="false" aria-describedby="sales-copy-template-help sales-copy-template-error"></textarea>
+            </label>
+            <p class="admin-template-help" id="sales-copy-template-help">
+              Biến dùng được:
+              <code>{{date}}</code> ngày bán,
+              <code>{{phone}}</code> số điện thoại,
+              <code>{{customer}}</code> khách hàng,
+              <code>{{staff}}</code> nhân viên và
+              <code>{{products}}</code> danh sách sản phẩm. Mẫu phải có đúng một biến <code>{{products}}</code>.
+            </p>
+            <p class="form-error admin-template-error" id="sales-copy-template-error" role="alert" hidden></p>
+            <div class="admin-template-preview">
+              <strong>Xem trước</strong>
+              <pre id="sales-copy-template-preview"></pre>
+            </div>
+          </section>
+
+          <section id="inventory-report-template-card" class="admin-template-card inventory-report-template-card" aria-labelledby="inventory-report-template-title">
+            <header class="admin-template-heading">
+              <p class="eyebrow" id="inventory-report-template-title">MẪU FORM BÁO CÁO KHO CUỐI CA</p>
+              <button class="button button-secondary admin-template-reset" id="reset-inventory-report-template" type="button">
+                Khôi phục mẫu mặc định
+              </button>
+            </header>
+            <label class="admin-template-field" for="inventory-report-template">
+              <span>Form mẫu</span>
+              <textarea id="inventory-report-template" rows="22" maxlength="8000" spellcheck="false" aria-describedby="inventory-report-template-help inventory-report-template-error"></textarea>
+            </label>
+            <p class="admin-template-help" id="inventory-report-template-help">
+              Biến ngày: <code>{{date}}</code>.<br />
+              PTS: <code>{{ptsSold}}</code>, <code>{{ptsSoldProducts}}</code>, <code>{{ptsRemaining}}</code>.<br />
+              Chân thoát: <code>{{drainSold}}</code>, <code>{{drainSoldProducts}}</code>, <code>{{drainRemaining}}</code>.<br />
+              VX: <code>{{vxSold}}</code>, <code>{{vxSoldProducts}}</code>, <code>{{vxRemaining}}</code>.<br />
+              Van chia nước: <code>{{valveSold}}</code>, <code>{{valveSoldProducts}}</code>, <code>{{valveRemaining}}</code>.
+            </p>
+            <p class="form-error admin-template-error" id="inventory-report-template-error" role="alert" hidden></p>
+            <div class="admin-template-preview">
+              <strong>Xem trước</strong>
+              <pre id="inventory-report-template-preview"></pre>
+            </div>
+          </section>
         </div>
       </section>
     </main>
@@ -460,6 +511,6 @@
     <noscript>
       <div class="noscript">Trang này cần JavaScript để nhập và lưu số lượng kiểm đếm.</div>
     </noscript>
-    <script src="/app.js?v=69" defer></script>
+    <script src="/app.js?v=74" defer></script>
   </body>
 </html>

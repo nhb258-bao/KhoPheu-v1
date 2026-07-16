@@ -16,14 +16,6 @@
       "area": "Khu BRC K2 Plus",
       "order": 1
     },
-    "PVN2008": {
-      "area": "Khu BRC K2 Plus",
-      "order": 9
-    },
-    "PVN3460": {
-      "area": "Khu BRC K2 Plus",
-      "order": 8
-    },
     "PVN4280": {
       "area": "Khu BRC K2 Plus",
       "order": 2
@@ -40,17 +32,9 @@
       "area": "Khu BRC K2 Plus",
       "order": 6
     },
-    "PVN3464": {
-      "area": "Khu BRC K2 Plus",
-      "order": 7
-    },
     "PVN4285": {
       "area": "Khu BRC K2 Plus",
       "order": 4
-    },
-    "PVN2187": {
-      "area": "Khu BRC DK4",
-      "order": 1
     },
     "PVN2188": {
       "area": "Khu BRC DK4",
@@ -196,5 +180,7 @@
       "area": "Khu Bếp Từ CT02",
       "order": 13
     }
-  }
+  },
+  "salesCopyTemplate": "{{date}} - {{phone}} - Dạ em bán:\n{{products}}\nDạ em đã xuất File và CRM.",
+  "inventoryReportTemplate": "Báo cáo kho PTS ngày {{date}}\nSố lượng bán PTS: {{ptsSold}}\n{{ptsSoldProducts}}\n=> SL PTS còn lại: PTS: {{ptsRemaining}}\n\nSố lượng bán Chân thoát: {{drainSold}}\n{{drainSoldProducts}}\n=> SL Chân thoát còn lại:\n{{drainRemaining}}\n\nSố lượng bán VX: {{vxSold}}\n{{vxSoldProducts}}\n=> SL VX còn lại:\n{{vxRemaining}}\n\nSố lượng bán Van Chia Nước: {{valveSold}}\n{{valveSoldProducts}}\n=> SL Van chia nước còn lại:\n{{valveRemaining}}\n\n=> Số lượng ĐỦ"
 }
