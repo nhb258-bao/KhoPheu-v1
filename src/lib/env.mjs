@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 
 export function parseEnv(text) {
@@ -36,6 +37,19 @@ export function parseEnv(text) {
 export async function loadEnvFile(filePath, target = process.env) {
   try {
     const values = parseEnv(await readFile(filePath, "utf8"));
+    for (const [key, value] of Object.entries(values)) {
+      if (target[key] === undefined) target[key] = value;
+    }
+    return true;
+  } catch (error) {
+    if (error?.code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+export function loadEnvFileSync(filePath, target = process.env) {
+  try {
+    const values = parseEnv(readFileSync(filePath, "utf8"));
     for (const [key, value] of Object.entries(values)) {
       if (target[key] === undefined) target[key] = value;
     }

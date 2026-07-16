@@ -5,7 +5,7 @@ import { randomBytes } from "node:crypto";
 import { extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { loadEnvFile, settingsFromEnv } from "./src/lib/env.mjs";
+import { loadEnvFileSync, settingsFromEnv } from "./src/lib/env.mjs";
 import {
   VIETNAM_TIME_ZONE,
   dateInTimeZone,
@@ -386,8 +386,8 @@ export function createApplication({
   };
 }
 
-export async function createDefaultApplication() {
-  await loadEnvFile(join(ROOT, ".env"));
+export function createDefaultApplication() {
+  loadEnvFileSync(join(ROOT, ".env"));
   const settings = settingsFromEnv();
   const sessionSecret = settings.sessionSecret || randomBytes(32).toString("hex");
   const store = new DataStore({
@@ -404,14 +404,12 @@ export async function createDefaultApplication() {
   return { application: createApplication({ settings, store, sheets, sessions }), settings };
 }
 
-export async function startServer() {
-  const { application, settings } = await createDefaultApplication();
+export function startServer() {
+  const { application, settings } = createDefaultApplication();
   const server = createServer(application);
-  await new Promise((resolveListen, rejectListen) => {
-    server.once("error", rejectListen);
-    server.listen(settings.port, settings.host, resolveListen);
+  server.listen(settings.port, settings.host, () => {
+    console.log(`Kho Phễu đang chạy tại http://localhost:${settings.port}`);
   });
-  console.log(`Kho Phễu đang chạy tại http://localhost:${settings.port}`);
   return server;
 }
 
@@ -420,7 +418,7 @@ export async function startServer() {
 // server.listen(); Node's test runner imports this module only for its exported helpers.
 if (!process.env.NODE_TEST_CONTEXT) {
   try {
-    await startServer();
+    startServer();
   } catch (error) {
     console.error("Không thể khởi động máy chủ:", error);
     throw error;
