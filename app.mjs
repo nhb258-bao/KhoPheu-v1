@@ -67,6 +67,37 @@ async function readJson(request, limit = 64 * 1024) {
     throw new AppError(415, "UNSUPPORTED_MEDIA_TYPE", "Yêu cầu phải dùng Content-Type application/json.");
   }
 
+  if (request.body !== undefined) {
+    if (Buffer.isBuffer(request.body) || ArrayBuffer.isView(request.body)) {
+      const rawBody = Buffer.from(request.body.buffer ?? request.body, request.body.byteOffset ?? 0, request.body.byteLength);
+      if (rawBody.length > limit) throw new AppError(413, "BODY_TOO_LARGE", "Dữ liệu gửi lên quá lớn.");
+      if (rawBody.length === 0) throw badRequest("Nội dung JSON không được để trống.");
+      try {
+        return JSON.parse(rawBody.toString("utf8"));
+      } catch {
+        throw badRequest("JSON không hợp lệ.");
+      }
+    }
+
+    if (typeof request.body === "string") {
+      const rawBody = Buffer.from(request.body, "utf8");
+      if (rawBody.length > limit) throw new AppError(413, "BODY_TOO_LARGE", "Dữ liệu gửi lên quá lớn.");
+      if (rawBody.length === 0) throw badRequest("Nội dung JSON không được để trống.");
+      try {
+        return JSON.parse(request.body);
+      } catch {
+        throw badRequest("JSON không hợp lệ.");
+      }
+    }
+
+    const serializedBody = JSON.stringify(request.body);
+    if (serializedBody === undefined) throw badRequest("JSON không hợp lệ.");
+    if (Buffer.byteLength(serializedBody, "utf8") > limit) {
+      throw new AppError(413, "BODY_TOO_LARGE", "Dữ liệu gửi lên quá lớn.");
+    }
+    return request.body;
+  }
+
   const chunks = [];
   let size = 0;
   for await (const chunk of request) {
@@ -93,6 +124,22 @@ async function readXlsx(request, limit = STOCK_UPLOAD_LIMIT) {
   const declaredLength = Number(request.headers["content-length"]);
   if (Number.isFinite(declaredLength) && declaredLength > limit) {
     throw new AppError(413, "BODY_TOO_LARGE", "File Excel vượt quá giới hạn 8 MB.");
+  }
+
+  if (request.body !== undefined) {
+    let file;
+    if (Buffer.isBuffer(request.body)) {
+      file = request.body;
+    } else if (ArrayBuffer.isView(request.body)) {
+      file = Buffer.from(request.body.buffer, request.body.byteOffset, request.body.byteLength);
+    } else if (typeof request.body === "string") {
+      file = Buffer.from(request.body, "binary");
+    } else {
+      throw badRequest("Nội dung file Excel không hợp lệ.");
+    }
+    if (file.length > limit) throw new AppError(413, "BODY_TOO_LARGE", "File Excel vượt quá giới hạn 8 MB.");
+    if (file.length === 0) throw badRequest("File Excel không được để trống.");
+    return file;
   }
 
   const chunks = [];
@@ -411,16 +458,4 @@ export function startServer() {
     console.log(`Kho Phễu đang chạy tại http://localhost:${settings.port}`);
   });
   return server;
-}
-
-// Vercel imports the detected server entrypoint instead of necessarily running it
-// as process.argv[1]. Start during module initialization so the platform can capture
-// server.listen(); Node's test runner imports this module only for its exported helpers.
-if (!process.env.NODE_TEST_CONTEXT) {
-  try {
-    startServer();
-  } catch (error) {
-    console.error("Không thể khởi động máy chủ:", error);
-    throw error;
-  }
 }

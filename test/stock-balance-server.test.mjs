@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer, request as httpRequest } from "node:http";
 
-import { createApplication } from "../server.mjs";
+import { createApplication } from "../app.mjs";
 import { AppError } from "../src/lib/errors.mjs";
 import { STOCK_UPLOAD_LIMIT } from "../src/lib/workbook.mjs";
 

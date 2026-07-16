@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 
-import { createApplication } from "../server.mjs";
+import { createApplication } from "../app.mjs";
 import {
   DEFAULT_INVENTORY_REPORT_TEMPLATE,
   DEFAULT_SALES_COPY_TEMPLATE,
