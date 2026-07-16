@@ -3,7 +3,7 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import { extname, join, relative, resolve, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 import { loadEnvFile, settingsFromEnv } from "./src/lib/env.mjs";
 import {
@@ -415,10 +415,14 @@ export async function startServer() {
   return server;
 }
 
-const entryPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : "";
-if (import.meta.url === entryPath) {
-  startServer().catch((error) => {
+// Vercel imports the detected server entrypoint instead of necessarily running it
+// as process.argv[1]. Start during module initialization so the platform can capture
+// server.listen(); Node's test runner imports this module only for its exported helpers.
+if (!process.env.NODE_TEST_CONTEXT) {
+  try {
+    await startServer();
+  } catch (error) {
     console.error("Không thể khởi động máy chủ:", error);
-    process.exitCode = 1;
-  });
+    throw error;
+  }
 }
