@@ -181,6 +181,6 @@
       "order": 13
     }
   },
-  "salesCopyTemplate": "{{date}} - {{phone}} - Dạ em bán:\n{{products}}\nDạ em đã xuất File và CRM.",
+  "salesCopyTemplate": "{{date}} - {{phone}} - Dạ em bán:\n    {{products}}\nDạ em đã xuất File và CRM.",
   "inventoryReportTemplate": "Báo cáo kho PTS ngày {{date}}\nSố lượng bán PTS: {{ptsSold}}\n{{ptsSoldProducts}}\n=> SL PTS còn lại: PTS: {{ptsRemaining}}\n\nSố lượng bán Chân thoát: {{drainSold}}\n{{drainSoldProducts}}\n=> SL Chân thoát còn lại:\n{{drainRemaining}}\n\nSố lượng bán VX: {{vxSold}}\n{{vxSoldProducts}}\n=> SL VX còn lại:\n{{vxRemaining}}\n\nSố lượng bán Van Chia Nước: {{valveSold}}\n{{valveSoldProducts}}\n=> SL Van chia nước còn lại:\n{{valveRemaining}}\n\n=> Số lượng ĐỦ"
 }

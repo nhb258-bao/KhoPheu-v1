@@ -20,7 +20,7 @@
   const TAB_NAMES = new Set(TAB_ORDER);
   const DEFAULT_SALES_COPY_TEMPLATE = [
     "{{date}} - {{phone}} - Dạ em bán:",
-    "{{products}}",
+    "    {{products}}",
     "Dạ em đã xuất File và CRM.",
   ].join("\n");
   const SALES_COPY_TEMPLATE_MAX_LENGTH = 4000;
@@ -447,7 +447,21 @@
   }
 
   function fillSalesCopyTemplate(template, values) {
-    return template.replace(/{{(date|phone|customer|staff|products)}}/g, (_match, token) => values[token] ?? "");
+    return template.replace(
+      /(^|\n)([ \t]*){{products}}|{{(date|phone|customer|staff|products)}}/g,
+      (_match, lineStart, indent, token) => {
+        if (lineStart !== undefined) {
+          const productText = String(values.products ?? "");
+          if (!productText) return lineStart;
+          const indentedProducts = productText
+            .split("\n")
+            .map((line) => `${indent}${line}`)
+            .join("\n");
+          return `${lineStart}${indentedProducts}`;
+        }
+        return values[token] ?? "";
+      },
+    );
   }
 
   function validateInventoryReportTemplate(value) {
@@ -951,7 +965,7 @@
 
   function customerSalesCopyText(customerGroup, staff = "", template = state.salesCopyTemplate) {
     const products = customerGroup.products
-      .map((product) => `    + ${product.name} x ${formatQuantity(product.quantity)}`)
+      .map((product) => `+ ${product.name} x ${formatQuantity(product.quantity)}`)
       .join("\n");
     return fillSalesCopyTemplate(normalizeSalesCopyTemplate(template), {
       date: formatNumericDate(state.date),

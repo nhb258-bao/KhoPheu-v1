@@ -4,7 +4,7 @@ const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
 
 export const DEFAULT_SALES_COPY_TEMPLATE = [
   "{{date}} - {{phone}} - Dạ em bán:",
-  "{{products}}",
+  "    {{products}}",
   "Dạ em đã xuất File và CRM.",
 ].join("\n");
 

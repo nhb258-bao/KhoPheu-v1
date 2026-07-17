@@ -258,6 +258,6 @@ test("Quản trị cấu hình mẫu báo cáo kho xuyên suốt UI, draft, lưu
     /resetInventoryReportTemplate\.addEventListener\("click",\s*resetInventoryReportTemplate\)/,
   );
 
-  assert.match(html, /href="\/styles\.css\?v=74"/);
-  assert.match(html, /src="\/app\.js\?v=74"/);
+  assert.match(html, /href="\/styles\.css\?v=75"/);
+  assert.match(html, /src="\/app\.js\?v=75"/);
 });

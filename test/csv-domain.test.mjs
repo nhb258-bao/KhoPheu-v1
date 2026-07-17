@@ -121,6 +121,7 @@ test("validation cấu hình và số đếm trả dữ liệu đã chuẩn hóa
 
 test("validation mẫu sao chép giữ định dạng và chỉ nhận placeholder được hỗ trợ", () => {
   const baseConfig = { areas: ["A"], assignments: {} };
+  assert.match(DEFAULT_SALES_COPY_TEMPLATE, /\n {4}\{\{products\}\}\n/);
   const customTemplate = [
     "  {{date}} - {{phone}} - {{customer}} - {{staff}}\r\n",
     "\t{{products}}  ",

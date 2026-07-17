@@ -38,7 +38,7 @@ test("Chi tiết bán hàng hiển thị SKU nhưng nội dung copy khách hàng
     "async function writeClipboardText",
     "customerSalesCopyText",
   );
-  assert.match(copyBlock, /`    \+ \$\{product\.name\} x \$\{formatQuantity\(product\.quantity\)\}`/);
+  assert.match(copyBlock, /`\+ \$\{product\.name\} x \$\{formatQuantity\(product\.quantity\)\}`/);
   assert.doesNotMatch(copyBlock, /product\.sku|SKU:/);
 
   assert.match(
@@ -46,6 +46,6 @@ test("Chi tiết bán hàng hiển thị SKU nhưng nội dung copy khách hàng
     /\.sales-customer-group h4\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\);[\s\S]*?gap:\s*0;/,
   );
   assert.match(css, /\.sales-product-sku\s*\{[\s\S]*?white-space:\s*nowrap;/);
-  assert.match(html, /href="\/styles\.css\?v=74"/);
-  assert.match(html, /src="\/app\.js\?v=74"/);
+  assert.match(html, /href="\/styles\.css\?v=75"/);
+  assert.match(html, /src="\/app\.js\?v=75"/);
 });

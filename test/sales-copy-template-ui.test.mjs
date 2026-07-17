@@ -43,6 +43,10 @@ test("Quản trị cấu hình mẫu copy xuyên suốt UI, draft, lưu và nộ
   for (const token of ["date", "phone", "customer", "staff", "products"]) {
     assert.ok(html.includes(`<code>{{${token}}}</code>`), `phần trợ giúp phải mô tả {{${token}}}`);
   }
+  assert.match(
+    html,
+    /Khi <code>\{\{products\}\}<\/code> nằm riêng một dòng, khoảng trắng đặt trước biến sẽ được áp dụng trước dấu <code>\+<\/code> của mọi sản phẩm\./,
+  );
 
   for (const selector of [
     ".admin-template-card",
@@ -131,6 +135,8 @@ test("Quản trị cấu hình mẫu copy xuyên suốt UI, draft, lưu và nộ
   );
   assert.match(copyBlock, /template\s*=\s*state\.salesCopyTemplate/);
   assert.match(copyBlock, /fillSalesCopyTemplate\(normalizeSalesCopyTemplate\(template\)/);
+  assert.match(copyBlock, /`\+ \$\{product\.name\} x \$\{formatQuantity\(product\.quantity\)\}`/);
+  assert.doesNotMatch(copyBlock, /`\s+\+ \$\{product\.name\}/);
   assert.match(copyBlock, /\n\s*products,\s*\n/);
   const handleCopyBlock = sourceBlock(
     app,
@@ -154,9 +160,28 @@ test("Quản trị cấu hình mẫu copy xuyên suốt UI, draft, lưu và nộ
     1,
     "formatter chỉ được replace một lượt để giá trị chèn vào không bị diễn giải lại như template",
   );
-  assert.match(
-    formatterBlock,
-    /template\.replace\(\/\{\{\(date\|phone\|customer\|staff\|products\)\}\}\/g,\s*\(_match, token\)\s*=>\s*values\[token\]\s*\?\?\s*""\)/,
+  assert.ok(formatterBlock.includes("/(^|\\n)([ \\t]*){{products}}|{{(date|phone|customer|staff|products)}}/g"));
+  assert.match(formatterBlock, /productText[\s\S]*?\.split\("\\n"\)[\s\S]*?`\$\{indent\}\$\{line\}`/);
+
+  const fillTemplate = Function(`"use strict"; ${formatterBlock}; return fillSalesCopyTemplate;`)();
+  const productValues = {
+    date: "17/07/2026",
+    phone: "0797509509",
+    products: "+ Sản phẩm A x 1\n+ Sản phẩm B x 2",
+  };
+  assert.equal(
+    fillTemplate("{{date}} - {{phone}} - Dạ em bán:\n    {{products}}\nĐã xuất.", productValues),
+    "17/07/2026 - 0797509509 - Dạ em bán:\n    + Sản phẩm A x 1\n    + Sản phẩm B x 2\nĐã xuất.",
+  );
+  assert.equal(
+    fillTemplate("{{products}}", productValues),
+    "+ Sản phẩm A x 1\n+ Sản phẩm B x 2",
+    "không đặt khoảng trắng thì dấu + phải sát lề trái",
+  );
+  assert.equal(
+    fillTemplate("  {{products}}", productValues),
+    "  + Sản phẩm A x 1\n  + Sản phẩm B x 2",
+    "hai khoảng trắng phải được áp dụng cho mọi dòng sản phẩm",
   );
 
   const editorBlock = sourceBlock(
@@ -212,6 +237,6 @@ test("Quản trị cấu hình mẫu copy xuyên suốt UI, draft, lưu và nộ
   assert.match(bindBlock, /salesCopyTemplateEditSession\s*=\s*null/);
   assert.match(bindBlock, /resetSalesCopyTemplate\.addEventListener\("click",\s*resetSalesCopyTemplate\)/);
 
-  assert.match(html, /href="\/styles\.css\?v=74"/);
-  assert.match(html, /src="\/app\.js\?v=74"/);
+  assert.match(html, /href="\/styles\.css\?v=75"/);
+  assert.match(html, /src="\/app\.js\?v=75"/);
 });

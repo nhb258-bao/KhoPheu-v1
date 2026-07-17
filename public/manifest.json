@@ -3,7 +3,7 @@
   "short_name": "Kho Phễu",
   "description": "Đếm kho phễu cuối ca và đối chiếu sản phẩm bán trong ngày.",
   "lang": "vi",
-  "start_url": "/#count",
+  "start_url": "/#overview",
   "display": "standalone",
   "background_color": "#f3f6f4",
   "theme_color": "#176b4c",
